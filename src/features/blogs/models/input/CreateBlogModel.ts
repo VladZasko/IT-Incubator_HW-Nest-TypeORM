@@ -14,12 +14,3 @@ export type CreateBlogReposModel = {
   createdAt: string;
   isMembership: boolean;
 };
-
-export type CreatePostBlogModel = {
-  /**
-   * blog name, description, websiteUrl
-   */
-  title: string;
-  shortDescription: string;
-  content: string;
-};

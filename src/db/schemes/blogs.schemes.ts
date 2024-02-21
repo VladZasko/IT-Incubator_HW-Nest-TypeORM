@@ -1,10 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { ObjectId } from 'mongodb';
 
 export type BlogDocument = HydratedDocument<BlogDBType>;
 
 @Schema()
 export class BlogDBType {
+  _id: ObjectId;
+
   @Prop({
     required: true,
   })

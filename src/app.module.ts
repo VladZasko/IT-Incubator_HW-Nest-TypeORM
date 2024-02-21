@@ -7,6 +7,17 @@ import { BlogsRepository } from './features/blogs/blogs.repository';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BlogDBType, BlogSchema } from './db/schemes/blogs.schemes';
 import { BlogsQueryRepository } from './features/blogs/blogs.query.repository';
+import { PostDBType, PostSchema } from './db/schemes/posts.schemes';
+import { PostsController } from './features/posts/posts.controller';
+import { PostsService } from './features/posts/posts.servis';
+import { PostsRepository } from './features/posts/posts.repository';
+import { PostsQueryRepository } from './features/posts/posts.query.repository';
+import { DeleteAllData } from './routes/tests';
+import { CommentsController } from './features/comments/comments.controller';
+import { CommentsQueryRepository } from './features/comments/comments.query.repository';
+import { CommentsService } from './features/comments/comments.servis';
+import { CommentsRepository } from './features/comments/comments.repository';
+import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
 
 @Module({
   imports: [
@@ -16,9 +27,34 @@ import { BlogsQueryRepository } from './features/blogs/blogs.query.repository';
         name: BlogDBType.name,
         schema: BlogSchema,
       },
+      {
+        name: PostDBType.name,
+        schema: PostSchema,
+      },
+      {
+        name: CommentDBType.name,
+        schema: CommentSchema,
+      },
     ]),
   ],
-  controllers: [AppController, BlogsController],
-  providers: [AppService, BlogsService, BlogsRepository, BlogsQueryRepository],
+  controllers: [
+    AppController,
+    DeleteAllData,
+    BlogsController,
+    PostsController,
+    CommentsController,
+  ],
+  providers: [
+    AppService,
+    BlogsService,
+    BlogsRepository,
+    BlogsQueryRepository,
+    PostsService,
+    PostsRepository,
+    PostsQueryRepository,
+    CommentsService,
+    CommentsRepository,
+    CommentsQueryRepository,
+  ],
 })
 export class AppModule {}

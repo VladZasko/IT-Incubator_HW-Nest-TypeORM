@@ -6,10 +6,14 @@ import { QueryBlogsModel } from './models/input/QueryBlogsModules';
 import { blogMapper } from './mappers/mapper';
 import { BlogsViewModel } from './models/output/BlogsViewModel';
 import { ObjectId } from 'mongodb';
+import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
+import { postQueryMapper } from '../posts/mappers/mappers';
+import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
 @Injectable()
 export class BlogsQueryRepository {
   constructor(
     @InjectModel(BlogDBType.name) private blogModel: Model<BlogDocument>,
+    @InjectModel(PostDBType.name) private postModel: Model<PostDocument>,
   ) {}
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
@@ -44,20 +48,24 @@ export class BlogsQueryRepository {
       items: blogs.map(blogMapper),
     };
   }
-  /*  async getPostsByBlogId(term: QueryBlogsModel, blogId: string) {
+  async getPostsByBlogId(
+    term: QueryPostsModel,
+    blogId: string,
+    likeStatusData?: string,
+  ) {
     const sortBy = term.sortBy ?? 'createdAt';
     const sortDirection = term.sortDirection ?? 'desc';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
     const posts = await this.postModel
-      .find(filter)
+      .find({ blogId: blogId })
       .sort([[sortBy, sortDirection]])
       .skip((pageNumber - 1) * +pageSize)
       .limit(+pageSize)
       .lean();
 
-    const totalCount = await this.blogModel.countDocuments(filter);
+    const totalCount = await this.postModel.countDocuments({ blogId: blogId });
 
     const pagesCount = Math.ceil(totalCount / +pageSize);
 
@@ -66,9 +74,9 @@ export class BlogsQueryRepository {
       page: +pageNumber,
       pageSize: +pageSize,
       totalCount,
-      items: blogs.map(blogMapper),
+      items: posts.map((posts) => postQueryMapper(posts, likeStatusData)),
     };
-  }*/
+  }
   async getBlogById(id: string): Promise<BlogsViewModel | null> {
     const blog = await this.blogModel.findOne({ _id: new ObjectId(id) });
 

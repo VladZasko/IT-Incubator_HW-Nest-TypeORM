@@ -12,5 +12,5 @@ export type BlogsViewModel = {
     page: number,
     pageSize: number
     totalCount: number
-    items: BlogsViewModel[]
+    items: PostsViewModel[]
 }*/
