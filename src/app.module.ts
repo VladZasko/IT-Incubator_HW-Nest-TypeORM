@@ -18,6 +18,11 @@ import { CommentsQueryRepository } from './features/comments/comments.query.repo
 import { CommentsService } from './features/comments/comments.servis';
 import { CommentsRepository } from './features/comments/comments.repository';
 import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
+import { UserDBType, UserSchema } from './db/schemes/users.schemes';
+import { UsersController } from './features/users/users.controller';
+import { UsersService } from './features/users/users.servis';
+import { UsersRepository } from './features/users/users.repository';
+import { UsersQueryRepository } from './features/users/users.query.repository';
 
 @Module({
   imports: [
@@ -35,6 +40,10 @@ import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
         name: CommentDBType.name,
         schema: CommentSchema,
       },
+      {
+        name: UserDBType.name,
+        schema: UserSchema,
+      },
     ]),
   ],
   controllers: [
@@ -43,6 +52,7 @@ import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
     BlogsController,
     PostsController,
     CommentsController,
+    UsersController,
   ],
   providers: [
     AppService,
@@ -55,6 +65,10 @@ import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
     CommentsService,
     CommentsRepository,
     CommentsQueryRepository,
+    UsersController,
+    UsersService,
+    UsersRepository,
+    UsersQueryRepository,
   ],
 })
 export class AppModule {}

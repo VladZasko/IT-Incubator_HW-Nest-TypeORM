@@ -21,7 +21,7 @@ export class AccountData {
   })
   createdAt: string;
 
-  @Prop({
+  /*  @Prop({
     required: true,
   })
   passwordHash: string;
@@ -29,10 +29,10 @@ export class AccountData {
   @Prop({
     required: true,
   })
-  passwordSalt: string;
+  passwordSalt: string;*/
 }
 
-@Schema()
+/*@Schema()
 export class EmailConfirmation {
   @Prop({
     required: true,
@@ -48,9 +48,9 @@ export class EmailConfirmation {
     required: true,
   })
   isConfirmed: boolean;
-}
+}*/
 
-@Schema()
+/*@Schema()
 export class PasswordRecovery {
   @Prop({
     required: true,
@@ -61,7 +61,7 @@ export class PasswordRecovery {
     required: true,
   })
   expirationDate: Date;
-}
+}*/
 @Schema()
 export class UserDBType {
   _id: ObjectId;
@@ -71,7 +71,7 @@ export class UserDBType {
   })
   accountData: AccountData;
 
-  @Prop({
+  /*  @Prop({
     required: true,
   })
   emailConfirmation: EmailConfirmation;
@@ -79,7 +79,7 @@ export class UserDBType {
   @Prop({
     required: true,
   })
-  passwordRecovery: PasswordRecovery;
+  passwordRecovery: PasswordRecovery;*/
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserDBType);

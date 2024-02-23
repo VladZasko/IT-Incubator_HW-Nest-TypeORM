@@ -3,6 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Put,
@@ -22,24 +25,46 @@ export class PostsController {
     protected postsQueryRepository: PostsQueryRepository,
   ) {}
   @Get()
-  getPosts(@Query() query: QueryPostsModel) {
-    return this.postsQueryRepository.getAllPosts(query);
+  async getPosts(@Query() query: QueryPostsModel) {
+    const posts = await this.postsQueryRepository.getAllPosts(query);
+    if (!posts) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
+    return posts;
   }
   @Get()
-  getCommentByPost(
+  async getCommentByPost(
     @Query() query: QueryCommentModule,
     @Param('id') blogId: string,
   ) {
-    return this.postsQueryRepository.getCommentByPostId(query, blogId);
+    const commentByPost = await this.postsQueryRepository.getCommentByPostId(
+      query,
+      blogId,
+    );
+    if (!commentByPost) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
+    return commentByPost;
   }
   @Get(':id')
-  getPost(@Param('id') postId: string) {
-    return this.postsQueryRepository.getPostById(postId);
+  async getPost(@Param('id') postId: string) {
+    const post = await this.postsQueryRepository.getPostById(postId);
+    if (!post) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
+    return post;
   }
   @Post()
-  createPost(@Body() inputModel: CreatePostServiceModel) {
-    const newPost = this.postsService.createPost(inputModel);
+  async createPost(@Body() inputModel: CreatePostServiceModel) {
+    const newPost = await this.postsService.createPost(inputModel);
 
+    if (newPost === null) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
     return newPost;
   }
   //@Post()
@@ -49,14 +74,26 @@ export class PostsController {
     return newPost;
   }*/
   @Put(':id')
-  updatePost(@Body() inputModel: UpdatePostModel, @Param('id') postId: string) {
-    const updatePost = this.postsService.updatePost(postId, inputModel);
-
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async updatePost(
+    @Body() inputModel: UpdatePostModel,
+    @Param('id') postId: string,
+  ) {
+    const updatePost = await this.postsService.updatePost(postId, inputModel);
+    if (updatePost === false) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
     return updatePost;
   }
   @Delete(':id')
-  deletePost(@Param('id') postId: string) {
-    const deletePost = this.postsService.deletePostById(postId);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletePost(@Param('id') postId: string) {
+    const deletePost = await this.postsService.deletePostById(postId);
+    if (deletePost === false) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
     return deletePost;
   }
 }

@@ -4,14 +4,19 @@ import { BlogsViewModel } from './models/output/BlogsViewModel';
 import { UpdateBlogModel } from './models/input/UpdateBlogModule';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { CreateBlogModel } from './models/input/CreateBlogModel';
+import { PostsViewModel } from '../posts/models/output/PostsViewModel';
 
 @Injectable()
 export class BlogsService {
   constructor(protected blogsRepository: BlogsRepository) {}
 
-  async createPostBlog(blogId: string, createData: CreatePostBlogModel) {
+  async createPostBlog(
+    blogId: string,
+    createData: CreatePostBlogModel,
+  ): Promise<PostsViewModel | null> {
     const blog = await this.blogsRepository.getBlog(blogId);
 
+    if (!blog) return null;
     const newPostBlog = {
       ...createData,
       blogId: blogId,

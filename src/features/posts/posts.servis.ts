@@ -13,8 +13,10 @@ export class PostsService {
   ) {}
   async createPost(
     createData: CreatePostServiceModel,
-  ): Promise<PostsViewModel> {
+  ): Promise<PostsViewModel | null> {
     const blog = await this.blogsRepository.getBlog(createData.blogId);
+    if (!blog) return null;
+
     const newPost = {
       title: createData.title,
       shortDescription: createData.shortDescription,
