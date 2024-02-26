@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -17,12 +18,14 @@ import { QueryPostsModel } from './models/input/QueryPostsModule';
 import { CreatePostServiceModel } from './models/input/CreatePostModel';
 import { UpdatePostModel } from './models/input/UpdatePostModule';
 import { QueryCommentModule } from '../comments/models/input/QueryCommentModule';
+import { BlogsRepository } from '../blogs/blogs.repository';
 
 @Controller('posts')
 export class PostsController {
   constructor(
     protected postsService: PostsService,
     protected postsQueryRepository: PostsQueryRepository,
+    protected blogsRepository: BlogsRepository,
   ) {}
   @Get()
   async getPosts(@Query() query: QueryPostsModel) {
@@ -60,6 +63,12 @@ export class PostsController {
   @Post()
   async createPost(@Body() inputModel: CreatePostServiceModel) {
     const newPost = await this.postsService.createPost(inputModel);
+    const blog = await this.blogsRepository.getBlog(inputModel.blogId);
+    if (!blog) {
+      throw new BadRequestException([
+        { message: 'Blog is not found', field: 'blogId' },
+      ]);
+    }
 
     if (newPost === null) {
       // Возвращаем HTTP статус 404 и сообщение

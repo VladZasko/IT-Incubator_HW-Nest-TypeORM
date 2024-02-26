@@ -23,10 +23,18 @@ import { UsersController } from './features/users/users.controller';
 import { UsersService } from './features/users/users.servis';
 import { UsersRepository } from './features/users/users.repository';
 import { UsersQueryRepository } from './features/users/users.query.repository';
+import { ConfigModule } from '@nestjs/config';
+
+const dbName = 'blogs-hws';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/nest'),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    MongooseModule.forRoot(
+      process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
+    ),
     MongooseModule.forFeature([
       {
         name: BlogDBType.name,
