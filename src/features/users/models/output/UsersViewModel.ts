@@ -19,8 +19,8 @@ export type UsersRepoViewModel = {
     login: string;
     email: string;
     createdAt: string;
-    /*        passwordHash: string,
-        passwordSalt: string*/
+    passwordHash: string;
+    passwordSalt: string;
   };
   emailConfirmation?: {
     confirmationCode: string;

@@ -1,11 +1,11 @@
 import { WithId } from 'mongodb';
-import {
-  UsersRepoViewModel,
-  UsersViewModel,
-} from '../models/output/UsersViewModel';
+import { UsersAuthViewModel } from '../models/output/UsersViewModel';
+import { UsersRepoViewModel } from '../../users/models/output/UsersViewModel';
 import { UserDBType } from '../../../db/schemes/users.schemes';
 
-export const userMapper = (userDb: WithId<UserDBType>): UsersViewModel => {
+export const userAuthMapper = (
+  userDb: WithId<UserDBType>,
+): UsersAuthViewModel => {
   return {
     id: userDb._id.toString(),
     login: userDb.accountData.login,
@@ -14,7 +14,7 @@ export const userMapper = (userDb: WithId<UserDBType>): UsersViewModel => {
   };
 };
 
-export const userDBMapper = (
+export const userAuthDBMapper = (
   userDb: WithId<UserDBType>,
 ): UsersRepoViewModel => {
   return {
@@ -26,5 +26,10 @@ export const userDBMapper = (
       passwordHash: userDb.accountData.passwordHash,
       passwordSalt: userDb.accountData.passwordSalt,
     },
+    /*    emailConfirmation: {
+      confirmationCode: userDb.emailConfirmation!.confirmationCode,
+      expirationDate: userDb.emailConfirmation!.expirationDate,
+      isConfirmed: userDb.emailConfirmation!.isConfirmed,
+    },*/
   };
 };

@@ -1,52 +1,66 @@
 import { Injectable } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { CreateUserModel } from './models/input/CreateUserModel';
-import { UsersViewModel } from './models/output/UsersViewModel';
+import {
+  UsersRepoViewModel,
+  UsersViewModel,
+} from './models/output/UsersViewModel';
+import * as bcrypt from 'bcrypt';
+import { UsersQueryRepository } from './users.query.repository';
+import { userDBMapper } from './mappers/mappers';
+import { LoginAuthUserModel } from '../auth/models/input/LoginAuthUserModel';
 
 @Injectable()
 export class UsersService {
-  constructor(protected usersRepository: UsersRepository) {}
+  constructor(
+    protected usersRepository: UsersRepository,
+    protected usersQueryRepository: UsersQueryRepository,
+  ) {}
 
   async createUser(createData: CreateUserModel): Promise<UsersViewModel> {
-    /*    const passwordSalt = await bcrypt.genSalt(10);
+    const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       createData.password,
       passwordSalt,
-    );*/
+    );
 
     const newUser = {
       accountData: {
         login: createData.login,
         email: createData.email,
         createdAt: new Date().toISOString(),
-        /*        passwordHash,
-        passwordSalt,*/
+        passwordHash,
+        passwordSalt,
       },
     };
     return await this.usersRepository.createUser(newUser);
   }
-  /*
 
-  async checkCredentials(loginOrEmail: string, password: string): Promise<UsersRepoViewModel | null> {
-    const user = await userQueryRepository.findByLoginOrEmail(loginOrEmail)
+  async checkCredentials(
+    checkCredentialsDto: LoginAuthUserModel,
+  ): Promise<UsersRepoViewModel | null> {
+    const user = await this.usersQueryRepository.findByLoginOrEmail(
+      checkCredentialsDto.loginOrEmail,
+    );
     if (!user) {
-      return null
+      return null;
     }
 
-    const passwordHash = await this._generateHash(password, user.accountData.passwordHash)
+    const passwordHash = await this._generateHash(
+      checkCredentialsDto.password,
+      user.accountData.passwordHash,
+    );
 
     if (user.accountData.passwordHash !== passwordHash) {
-      return null
+      return null;
     }
 
-    return userDBMapper(user)
-
+    return userDBMapper(user);
   }
 
   async _generateHash(password: string, salt: string) {
-    return await bcrypt.hash(password, salt)
+    return await bcrypt.hash(password, salt);
   }
-*/
 
   async deleteUserById(id: string): Promise<boolean> {
     return await this.usersRepository.deleteUserById(id);

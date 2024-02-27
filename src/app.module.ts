@@ -24,6 +24,19 @@ import { UsersService } from './features/users/users.servis';
 import { UsersRepository } from './features/users/users.repository';
 import { UsersQueryRepository } from './features/users/users.query.repository';
 import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import * as process from 'process';
+import {
+  RefreshTokensMetaDBType,
+  RefreshTokensMetaSchema,
+} from './db/schemes/token.schemes';
+import { AuthController } from './features/auth/auth.controller';
+import { AuthService } from './features/auth/auth.service';
+import { AuthRepository } from './features/auth/auth.repository';
+import { AuthQueryRepository } from './features/auth/auth.query.repository';
+import { LocalStrategy } from './features/auth/strategies/local.strategy';
+import { JwtStrategy } from './features/auth/strategies/jwt.strategy';
+import { PassportModule } from '@nestjs/passport';
 
 const dbName = 'blogs-hws';
 
@@ -52,7 +65,15 @@ const dbName = 'blogs-hws';
         name: UserDBType.name,
         schema: UserSchema,
       },
+      {
+        name: RefreshTokensMetaDBType.name,
+        schema: RefreshTokensMetaSchema,
+      },
     ]),
+    PassportModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+    }),
   ],
   controllers: [
     AppController,
@@ -61,6 +82,7 @@ const dbName = 'blogs-hws';
     PostsController,
     CommentsController,
     UsersController,
+    AuthController,
   ],
   providers: [
     AppService,
@@ -73,10 +95,14 @@ const dbName = 'blogs-hws';
     CommentsService,
     CommentsRepository,
     CommentsQueryRepository,
-    UsersController,
     UsersService,
     UsersRepository,
     UsersQueryRepository,
+    AuthService,
+    AuthRepository,
+    AuthQueryRepository,
+    LocalStrategy,
+    JwtStrategy,
   ],
 })
 export class AppModule {}

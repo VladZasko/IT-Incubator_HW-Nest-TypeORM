@@ -19,7 +19,6 @@ import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { AuthGuard } from '../../auth.guard';
 
-@UseGuards(AuthGuard)
 @Controller('blogs')
 export class BlogsController {
   constructor(
