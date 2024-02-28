@@ -9,11 +9,16 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.servis';
 import { QueryUserModel } from './models/input/QueryUserModule';
 import { UsersQueryRepository } from './users.query.repository';
 import { CreateUserModel } from './models/input/CreateUserModel';
+import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
+import { mapServiceCodeToHttpStatus } from '../auth/mapper/status-code-mapper';
+
+@UseGuards(BasicAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(
@@ -28,7 +33,7 @@ export class UsersController {
   async createUser(@Body() inputModel: CreateUserModel) {
     const newUser = await this.usersService.createUser(inputModel);
 
-    return newUser;
+    return mapServiceCodeToHttpStatus(newUser);
   }
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)

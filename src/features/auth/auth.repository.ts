@@ -9,6 +9,7 @@ import {
 } from '../../db/schemes/token.schemes';
 import { CreateAuthUserPassModel } from './models/input/CreateAuthUserModel';
 import { UsersAuthViewModel } from './models/output/UsersViewModel';
+import { userAuthMapper } from './mapper/mappers';
 
 @Injectable()
 export class AuthRepository {

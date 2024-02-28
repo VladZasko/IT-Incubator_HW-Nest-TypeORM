@@ -37,6 +37,7 @@ import { AuthQueryRepository } from './features/auth/auth.query.repository';
 import { LocalStrategy } from './features/auth/strategies/local.strategy';
 import { JwtStrategy } from './features/auth/strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
+import { BasicStrategy } from './features/auth/strategies/basic.strategy';
 
 const dbName = 'blogs-hws';
 
@@ -103,6 +104,7 @@ const dbName = 'blogs-hws';
     AuthQueryRepository,
     LocalStrategy,
     JwtStrategy,
+    BasicStrategy,
   ],
 })
 export class AppModule {}

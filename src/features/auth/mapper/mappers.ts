@@ -3,9 +3,7 @@ import { UsersAuthViewModel } from '../models/output/UsersViewModel';
 import { UsersRepoViewModel } from '../../users/models/output/UsersViewModel';
 import { UserDBType } from '../../../db/schemes/users.schemes';
 
-export const userAuthMapper = (
-  userDb: WithId<UserDBType>,
-): UsersAuthViewModel => {
+export const userAuthMapper = (userDb: any): UsersAuthViewModel => {
   return {
     id: userDb._id.toString(),
     login: userDb.accountData.login,

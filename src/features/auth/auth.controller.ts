@@ -7,6 +7,8 @@ import {
   Response,
   BadRequestException,
   Get,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.servis';
@@ -16,6 +18,7 @@ import { newPasswordModel } from './models/input/newPasswordModel';
 import { CreateUserModel } from '../users/models/input/CreateUserModel';
 import { AuthQueryRepository } from './auth.query.repository';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { mapServiceCodeToHttpStatus } from './mapper/status-code-mapper';
 
 @Controller('auth')
 export class AuthController {
@@ -102,6 +105,7 @@ export class AuthController {
     return;
   }*/
   @Post('registration-confirmation')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async registrationConfirmation(@Body('code') code: string) {
     const result = await this.authService.confirmEmail(code);
 
@@ -113,24 +117,21 @@ export class AuthController {
     return;
   }
   @Post('registration')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async registration(@Body() inputModel: CreateUserModel) {
     const newUser = await this.authService.createUser(inputModel);
-    if (newUser) {
-      return;
-    } else {
-      throw new BadRequestException([
-        { message: 'User dont create', field: 'registration' },
-      ]);
-    }
+
+    return mapServiceCodeToHttpStatus(newUser);
   }
   @Post('registration-email-resending')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async registrationEmailResending(@Body('email') email: string) {
     const result = await this.authService.resendingConfirmEmail(email);
     if (result) {
       return;
     } else {
       throw new BadRequestException([
-        { message: 'email dont sent', field: 'EmailResending' },
+        { message: 'email dont sent', field: 'email' },
       ]);
     }
   }

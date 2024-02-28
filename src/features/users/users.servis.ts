@@ -9,7 +9,17 @@ import * as bcrypt from 'bcrypt';
 import { UsersQueryRepository } from './users.query.repository';
 import { userDBMapper } from './mappers/mappers';
 import { LoginAuthUserModel } from '../auth/models/input/LoginAuthUserModel';
+import { ResultCode } from './utils/result-code';
+import { ERRORS_MESSAGES } from '../../utils/errors';
 
+export type Result<T> = {
+  resultCode: ResultCode;
+  errorMessage?: {
+    message: string;
+    field: string;
+  };
+  data: T;
+};
 @Injectable()
 export class UsersService {
   constructor(
@@ -17,7 +27,30 @@ export class UsersService {
     protected usersQueryRepository: UsersQueryRepository,
   ) {}
 
-  async createUser(createData: CreateUserModel): Promise<UsersViewModel> {
+  async createUser(
+    createData: CreateUserModel,
+  ): Promise<Result<UsersViewModel | null>> {
+    const foundEmail = await this.usersQueryRepository.findByLoginOrEmail(
+      createData.email,
+    );
+    if (foundEmail) {
+      return {
+        resultCode: ResultCode.invalidEmail,
+        errorMessage: ERRORS_MESSAGES.USER_EMAIL,
+        data: null,
+      };
+    }
+    const foundLogin = await this.usersQueryRepository.findByLoginOrEmail(
+      createData.login,
+    );
+    if (foundLogin) {
+      return {
+        resultCode: ResultCode.invalidLogin,
+        errorMessage: ERRORS_MESSAGES.USER_LOGIN,
+        data: null,
+      };
+    }
+
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       createData.password,
@@ -33,7 +66,12 @@ export class UsersService {
         passwordSalt,
       },
     };
-    return await this.usersRepository.createUser(newUser);
+    const createResult = await this.usersRepository.createUser(newUser);
+
+    return {
+      resultCode: ResultCode.Success,
+      data: createResult,
+    };
   }
 
   async checkCredentials(

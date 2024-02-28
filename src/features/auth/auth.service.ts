@@ -14,7 +14,17 @@ import { add } from 'date-fns/add';
 import { emailAdapter } from './adapters/email-adapter';
 import { EmailAdapterDto } from './models/input/EmailAdapterDto';
 import { JwtService } from '@nestjs/jwt';
+import { ResultCode } from '../users/utils/result-code';
+import { ERRORS_MESSAGES } from '../../utils/errors';
 
+export type Result<T> = {
+  resultCode: ResultCode;
+  errorMessage?: {
+    message: string;
+    field: string;
+  };
+  data: T;
+};
 @Injectable()
 export class AuthService {
   constructor(
@@ -23,7 +33,30 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async createUser(createData: CreateUserModel): Promise<UsersViewModel> {
+  async createUser(
+    createData: CreateUserModel,
+  ): Promise<Result<UsersViewModel | null>> {
+    const foundEmail = await this.authQueryRepository.findByLoginOrEmail(
+      createData.email,
+    );
+    if (foundEmail) {
+      return {
+        resultCode: ResultCode.invalidEmail,
+        errorMessage: ERRORS_MESSAGES.USER_EMAIL,
+        data: null,
+      };
+    }
+    const foundLogin = await this.authQueryRepository.findByLoginOrEmail(
+      createData.login,
+    );
+    if (foundLogin) {
+      return {
+        resultCode: ResultCode.invalidLogin,
+        errorMessage: ERRORS_MESSAGES.USER_LOGIN,
+        data: null,
+      };
+    }
+
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this._generateHash(
       createData.password,
@@ -58,7 +91,10 @@ export class AuthService {
       console.error(error);
       await this.authRepository.deleteUserById(createResult.id);
     }
-    return createResult;
+    return {
+      resultCode: ResultCode.Success,
+      data: createResult,
+    };
   }
 
   async confirmEmail(code: string): Promise<boolean> {
@@ -75,6 +111,7 @@ export class AuthService {
   async resendingConfirmEmail(email: string): Promise<boolean> {
     const user = await this.authQueryRepository.findByLoginOrEmail(email);
     if (!user) return false;
+    if (user.emailConfirmation.isConfirmed) return false;
 
     const newConfirmationCode = uuidv4();
     const newExpirationDate = add(new Date(), {
@@ -179,7 +216,7 @@ export class AuthService {
 
   async login(userId: string) {
     const payload = { sub: userId };
-    return this.jwtService.sign(payload, { expiresIn: '30s' });
+    return this.jwtService.sign(payload, { expiresIn: '300s' });
   }
 
   async refreshToken(dataRefreshToken: any) {
@@ -191,7 +228,7 @@ export class AuthService {
       },
     };
     return {
-      refreshToken: this.jwtService.sign(payload, { expiresIn: '60s' }),
+      refreshToken: this.jwtService.sign(payload, { expiresIn: '600s' }),
     };
   }
 
