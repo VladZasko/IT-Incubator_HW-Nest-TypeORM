@@ -10,6 +10,7 @@ import {
 import { CreateAuthUserPassModel } from './models/input/CreateAuthUserModel';
 import { UsersAuthViewModel } from './models/output/UsersViewModel';
 import { userAuthMapper } from './mapper/mappers';
+import { CreateUserModel } from '../users/models/input/CreateUserModel';
 
 @Injectable()
 export class AuthRepository {
@@ -116,5 +117,14 @@ export class AuthRepository {
   }
   async deleteRefreshTokensMeta(deviceId: string) {
     return this.refreshTokenMetaModel.deleteOne({ deviceId });
+  }
+
+  async findByLoginOrEmail(createData: CreateUserModel) {
+    return this.userModel.findOne({
+      $or: [
+        { 'accountData.email': createData.email },
+        { 'accountData.login': createData.login },
+      ],
+    });
   }
 }

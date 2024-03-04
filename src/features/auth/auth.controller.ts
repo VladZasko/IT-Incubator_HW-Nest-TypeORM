@@ -9,6 +9,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.servis';
@@ -148,6 +150,7 @@ export class AuthController {
   @Get('me')
   async me(@Request() req) {
     const user = await this.authQueryRepository.getUserById(req.user.userId);
+    if (!user) throw new UnauthorizedException();
     return {
       email: user.email,
       login: user.login,

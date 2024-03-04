@@ -9,6 +9,7 @@ import { CreateBlogReposModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogRepoModel } from './models/input/CreatePostByBlogModel';
 import { postQueryMapper } from '../posts/mappers/mappers';
 import { PostsViewModel } from '../posts/models/output/PostsViewModel';
+import { BlogsViewModel } from './models/output/BlogsViewModel';
 
 @Injectable()
 export class BlogsRepository {
@@ -32,7 +33,9 @@ export class BlogsRepository {
 
     return blog;
   }
-  async createBlog(createBlogDto: CreateBlogReposModel): Promise<any> {
+  async createBlog(
+    createBlogDto: CreateBlogReposModel,
+  ): Promise<BlogsViewModel> {
     const createdBlog = new this.blogModel(createBlogDto);
     await createdBlog.save();
     return {

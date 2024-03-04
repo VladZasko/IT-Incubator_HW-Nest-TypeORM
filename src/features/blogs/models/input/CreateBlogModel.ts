@@ -1,4 +1,5 @@
 import { Length, Matches } from 'class-validator';
+import { ObjectId } from 'mongodb';
 /*export type CreateBlogModel = {
   name: string;
   description: string;
@@ -27,3 +28,7 @@ export type CreateBlogReposModel = {
   createdAt: string;
   isMembership: boolean;
 };
+
+export class ParamIdModel {
+  id: ObjectId;
+}

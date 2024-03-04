@@ -16,6 +16,7 @@ import { EmailAdapterDto } from './models/input/EmailAdapterDto';
 import { JwtService } from '@nestjs/jwt';
 import { ResultCode } from '../users/utils/result-code';
 import { ERRORS_MESSAGES } from '../../utils/errors';
+import { ConfigService } from '@nestjs/config';
 
 export type Result<T> = {
   resultCode: ResultCode;
@@ -31,30 +32,27 @@ export class AuthService {
     protected authRepository: AuthRepository,
     protected authQueryRepository: AuthQueryRepository,
     private readonly jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async createUser(
     createData: CreateUserModel,
   ): Promise<Result<UsersViewModel | null>> {
-    const foundEmail = await this.authQueryRepository.findByLoginOrEmail(
-      createData.email,
-    );
-    if (foundEmail) {
-      return {
-        resultCode: ResultCode.invalidEmail,
-        errorMessage: ERRORS_MESSAGES.USER_EMAIL,
-        data: null,
-      };
-    }
-    const foundLogin = await this.authQueryRepository.findByLoginOrEmail(
-      createData.login,
-    );
-    if (foundLogin) {
-      return {
-        resultCode: ResultCode.invalidLogin,
-        errorMessage: ERRORS_MESSAGES.USER_LOGIN,
-        data: null,
-      };
+    const foundUser = await this.authRepository.findByLoginOrEmail(createData);
+    if (foundUser) {
+      if (foundUser.accountData.email === createData.email) {
+        return {
+          resultCode: ResultCode.invalidEmail,
+          errorMessage: ERRORS_MESSAGES.USER_EMAIL,
+          data: null,
+        };
+      } else {
+        return {
+          resultCode: ResultCode.invalidLogin,
+          errorMessage: ERRORS_MESSAGES.USER_LOGIN,
+          data: null,
+        };
+      }
     }
 
     const passwordSalt = await bcrypt.genSalt(10);
@@ -216,7 +214,9 @@ export class AuthService {
 
   async login(userId: string) {
     const payload = { sub: userId };
-    return this.jwtService.sign(payload, { expiresIn: '300s' });
+    return this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('auth.ACCESS_TOKEN_TIME'),
+    });
   }
 
   async refreshToken(dataRefreshToken: any) {
@@ -228,7 +228,9 @@ export class AuthService {
       },
     };
     return {
-      refreshToken: this.jwtService.sign(payload, { expiresIn: '600s' }),
+      refreshToken: this.jwtService.sign(payload, {
+        expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
+      }),
     };
   }
 

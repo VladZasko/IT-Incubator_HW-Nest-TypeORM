@@ -1,3 +1,7 @@
+// this module should be first line of app.module.ts
+import { getConfigModule } from './configuration/getConfigModule';
+const configModule = getConfigModule;
+
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -23,7 +27,6 @@ import { UsersController } from './features/users/users.controller';
 import { UsersService } from './features/users/users.servis';
 import { UsersRepository } from './features/users/users.repository';
 import { UsersQueryRepository } from './features/users/users.query.repository';
-import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import * as process from 'process';
 import {
@@ -43,9 +46,7 @@ const dbName = 'blogs-hws';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    configModule,
     MongooseModule.forRoot(
       process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
     ),
