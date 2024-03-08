@@ -3,7 +3,7 @@ import { ErrorMessage } from '../../../../src/utils/errors';
 import { authModel } from '../../../../src/features/auth/models/authModels';
 import { errors } from '../../../utils/error';
 import { CreateUserModel } from '../../../../src/features/users/models/input/CreateUserModel';
-import { emailAdapter } from '../../../../src/features/auth/adapters/email-adapter';
+import { EmailAdapter } from '../../../../src/features/auth/adapters/email-adapter';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { HttpStatusType } from '../../../utils/utils';
 import { AuthQueryRepository } from '../../../../src/features/auth/auth.query.repository';
@@ -49,7 +49,7 @@ export class AuthTestManager {
     expectedErrorsMessages?: ErrorMessage,
   ) {
     jest
-      .spyOn(emailAdapter, 'sendCode')
+      .spyOn(EmailAdapter, 'sendCode')
       .mockImplementation(() => Promise.resolve(true));
 
     const response = await request(httpServer)
@@ -103,7 +103,7 @@ export class AuthTestManager {
     expectedErrorsMessages?: ErrorMessage,
   ) {
     jest
-      .spyOn(emailAdapter, 'sendNewCode')
+      .spyOn(EmailAdapter, 'sendNewCode')
       .mockImplementation(() => Promise.resolve(true));
 
     const response = await request(httpServer)
@@ -134,7 +134,7 @@ export class AuthTestManager {
     expectedErrorsMessages?: ErrorMessage,
   ) {
     jest
-      .spyOn(emailAdapter, 'sendRecoveryCode')
+      .spyOn(EmailAdapter, 'sendRecoveryCode')
       .mockImplementation(() => Promise.resolve(true));
 
     const response = await request(httpServer)

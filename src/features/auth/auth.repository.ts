@@ -9,8 +9,7 @@ import {
 } from '../../db/schemes/token.schemes';
 import { CreateAuthUserPassModel } from './models/input/CreateAuthUserModel';
 import { UsersAuthViewModel } from './models/output/UsersViewModel';
-import { userAuthMapper } from './mapper/mappers';
-import { CreateUserModel } from '../users/models/input/CreateUserModel';
+import { LoginOrEmailModel } from './models/input/LoginAuthUserModel';
 
 @Injectable()
 export class AuthRepository {
@@ -119,7 +118,19 @@ export class AuthRepository {
     return this.refreshTokenMetaModel.deleteOne({ deviceId });
   }
 
-  async findByLoginOrEmail(createData: CreateUserModel) {
+  async findUserByConfirmationCode(emailConfirmationCode: string) {
+    return this.userModel.findOne({
+      'emailConfirmation.confirmationCode': emailConfirmationCode,
+    });
+  }
+
+  async findUserByRecoveryCode(recoveryCode: string) {
+    return this.userModel.findOne({
+      'passwordRecovery.recoveryCode': recoveryCode,
+    });
+  }
+
+  async findByLoginOrEmail(createData: LoginOrEmailModel) {
     return this.userModel.findOne({
       $or: [
         { 'accountData.email': createData.email },

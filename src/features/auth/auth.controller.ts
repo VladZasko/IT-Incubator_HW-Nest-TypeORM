@@ -9,11 +9,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.servis';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { v4 as uuidv4 } from 'uuid';
 import { newPasswordModel } from './models/input/newPasswordModel';
@@ -21,18 +18,27 @@ import { CreateUserModel } from '../users/models/input/CreateUserModel';
 import { AuthQueryRepository } from './auth.query.repository';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { mapServiceCodeToHttpStatus } from './mapper/status-code-mapper';
+import { CreateUserCommand } from './application/use-cases/create.user.use.case';
+import { ConfirmEmailCommand } from './application/use-cases/confirm.email.use.case';
+import { RecoveryPasswordCommand } from './application/use-cases/recovery.password.use.case';
+import { RefreshAndAccessTokenUseCase } from './application/use-cases/refresh.and.access.token.use.case';
+import { CommandBus } from '@nestjs/cqrs';
+import { ResendingConfirmEmailCommand } from './application/use-cases/resending.confirm.email.use.case';
+import { NewPasswordCommand } from './application/use-cases/new.password.use.case';
 
 @Controller('auth')
 export class AuthController {
   constructor(
-    protected authService: AuthService,
-    protected usersService: UsersService,
+    protected refreshAndAccessTokenUseCase: RefreshAndAccessTokenUseCase,
     protected authQueryRepository: AuthQueryRepository,
+    private commandBus: CommandBus,
   ) {}
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Request() req, @Response({ passthrough: true }) res) {
-    const accessToken = await this.authService.login(req.user.id);
+    const accessToken = await this.refreshAndAccessTokenUseCase.login(
+      req.user.id,
+    );
 
     const dataRefreshToken = {
       issuedAt: new Date().toISOString(),
@@ -42,9 +48,12 @@ export class AuthController {
       deviseName: req.headers['user-agent'] ?? 'Device',
     };
 
-    const refreshToken = await this.authService.refreshToken(dataRefreshToken);
+    const refreshToken =
+      await this.refreshAndAccessTokenUseCase.refreshToken(dataRefreshToken);
 
-    await this.authService.createRefreshTokensMeta(dataRefreshToken);
+    await this.refreshAndAccessTokenUseCase.createRefreshTokensMeta(
+      dataRefreshToken,
+    );
 
     res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
     res.status(200).send({
@@ -53,13 +62,14 @@ export class AuthController {
   }
   @Post('password-recovery')
   async passwordRecovery(@Body() email: string) {
-    await this.authService.passwordRecovery(email);
+    await this.commandBus.execute(
+      new RecoveryPasswordCommand({ email: email }),
+    );
     return;
   }
   @Post('new-password')
   async newPassword(@Body() inputModel: newPasswordModel) {
-    await this.authService.newPassword(inputModel);
-
+    await this.commandBus.execute(new NewPasswordCommand(inputModel));
     return;
   }
   /*@Post('refresh-token')
@@ -109,7 +119,7 @@ export class AuthController {
   @Post('registration-confirmation')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registrationConfirmation(@Body('code') code: string) {
-    const result = await this.authService.confirmEmail(code);
+    const result = await this.commandBus.execute(new ConfirmEmailCommand(code));
 
     if (!result) {
       throw new BadRequestException([
@@ -121,14 +131,17 @@ export class AuthController {
   @Post('registration')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registration(@Body() inputModel: CreateUserModel) {
-    const newUser = await this.authService.createUser(inputModel);
-
+    const newUser = await this.commandBus.execute(
+      new CreateUserCommand(inputModel),
+    );
     return mapServiceCodeToHttpStatus(newUser);
   }
   @Post('registration-email-resending')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registrationEmailResending(@Body('email') email: string) {
-    const result = await this.authService.resendingConfirmEmail(email);
+    const result = await this.commandBus.execute(
+      new ResendingConfirmEmailCommand(email),
+    );
     if (result) {
       return;
     } else {

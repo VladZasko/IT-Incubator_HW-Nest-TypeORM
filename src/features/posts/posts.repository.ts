@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { LikesStatus, PostsViewModel } from './models/output/PostsViewModel';
+import {
+  LikesStatus,
+  NewestLikesType,
+  PostsViewModel,
+} from './models/output/PostsViewModel';
 import { ObjectId } from 'mongodb';
 import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
 import { UpdatePostModel } from './models/input/UpdatePostModule';
@@ -9,6 +13,8 @@ import {
   CommentDBType,
   CommentDocument,
 } from '../../db/schemes/comments.schemes';
+import { CreateCommentModelRepo } from '../comments/models/input/CreateCommentModel';
+import { CommentViewModel } from '../comments/models/output/CommentViewModel';
 @Injectable()
 export class PostsRepository {
   constructor(
@@ -17,6 +23,96 @@ export class PostsRepository {
     private commentModel: Model<CommentDocument>,
   ) {}
 
+  async updateLike(
+    id: string,
+    likesData: NewestLikesType,
+    likeStatusData: LikesStatus,
+  ): Promise<boolean> {
+    const post = await this.postModel.findById({ _id: new ObjectId(id) });
+
+    const isLiked = post!.likesInfo.likes.some(
+      (obj) => obj.userId === likesData.userId,
+    );
+    const isDisliked = post!.likesInfo.dislikes.some(
+      (obj) => obj.userId === likesData.userId,
+    );
+
+    if (likeStatusData === LikesStatus.Like) {
+      if (isLiked) {
+        return true;
+      } else {
+        await this.postModel.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $push: {
+              'likesInfo.likes': likesData,
+            },
+          },
+        );
+        if (isDisliked) {
+          await this.postModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $pull: {
+                'likesInfo.dislikes': { userId: likesData.userId },
+              },
+            },
+          );
+        }
+      }
+    } else if (likeStatusData === LikesStatus.Dislike) {
+      if (isDisliked) {
+        return true;
+      } else {
+        await this.postModel.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $push: {
+              'likesInfo.dislikes': likesData,
+            },
+          },
+        );
+        if (isLiked) {
+          await this.postModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $pull: {
+                'likesInfo.likes': { userId: likesData.userId },
+              },
+            },
+          );
+        }
+      }
+    } else if (likeStatusData === LikesStatus.None) {
+      if (isDisliked) {
+        await this.postModel.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $pull: {
+              'likesInfo.dislikes': { userId: likesData.userId },
+            },
+          },
+        );
+      } else if (isLiked) {
+        await this.postModel.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $pull: {
+              'likesInfo.likes': { userId: likesData.userId },
+            },
+          },
+        );
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
+
+    await post!.save();
+
+    return true;
+  }
   async createPost(createPostDto: any): Promise<PostsViewModel> {
     const createdPost = new this.postModel(createPostDto);
     await createdPost.save();
@@ -53,7 +149,7 @@ export class PostsRepository {
     );
     return !!foundPost.matchedCount;
   }
-  /*  async createCommentByPost(
+  async createCommentByPost(
     createData: CreateCommentModelRepo,
   ): Promise<CommentViewModel> {
     const comment = await this.commentModel.create({ ...createData });
@@ -72,7 +168,7 @@ export class PostsRepository {
         myStatus: LikesStatus.None,
       },
     };
-  }*/
+  }
   async deletePost(id: string): Promise<boolean> {
     const foundPost = await this.postModel.deleteOne({ _id: new ObjectId(id) });
 

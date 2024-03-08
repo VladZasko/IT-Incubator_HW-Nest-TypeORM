@@ -20,7 +20,7 @@ export class PostsQueryRepository {
     @InjectModel(CommentDBType.name)
     private commentModel: Model<CommentDocument>,
   ) {}
-  async getAllPosts(sortData: QueryPostsModel, likeStatusData?: string) {
+  async getAllPosts(sortData: QueryPostsModel, likeStatusData: string) {
     const pageNumber = sortData.pageNumber ?? 1;
     const pageSize = sortData.pageSize ?? 10;
     const sortBy = sortData.sortBy ?? 'createdAt';

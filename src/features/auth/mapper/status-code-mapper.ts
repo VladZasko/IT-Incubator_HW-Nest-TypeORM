@@ -1,6 +1,6 @@
 import { UsersViewModel } from '../../users/models/output/UsersViewModel';
-import { Result } from '../auth.service';
 import { BadRequestException } from '@nestjs/common';
+import { Result } from '../utils/result.type';
 
 export function mapServiceCodeToHttpStatus(
   resultCode: Result<UsersViewModel | null>,

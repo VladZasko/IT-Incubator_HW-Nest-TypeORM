@@ -34,16 +34,35 @@ import {
   RefreshTokensMetaSchema,
 } from './db/schemes/token.schemes';
 import { AuthController } from './features/auth/auth.controller';
-import { AuthService } from './features/auth/auth.service';
 import { AuthRepository } from './features/auth/auth.repository';
 import { AuthQueryRepository } from './features/auth/auth.query.repository';
 import { LocalStrategy } from './features/auth/strategies/local.strategy';
 import { JwtStrategy } from './features/auth/strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { BasicStrategy } from './features/auth/strategies/basic.strategy';
+import { CreateUserUseCase } from './features/auth/application/use-cases/create.user.use.case';
+import { RecoveryPasswordUseCase } from './features/auth/application/use-cases/recovery.password.use.case';
+import { ConfirmEmailUseCase } from './features/auth/application/use-cases/confirm.email.use.case';
+import { CheckCredentialsUseCase } from './features/auth/application/use-cases/check.credentials.use.case';
+import { RefreshAndAccessTokenUseCase } from './features/auth/application/use-cases/refresh.and.access.token.use.case';
+import { CqrsModule } from '@nestjs/cqrs';
+import { EmailAdapter } from './features/auth/adapters/email-adapter';
+import { AuthService } from './features/auth/application/auth.service';
+import { NewPasswordUseCase } from './features/auth/application/use-cases/new.password.use.case';
+import { ResendingConfirmEmailUseCase } from './features/auth/application/use-cases/resending.confirm.email.use.case';
+import { AccessRolesGuard } from './features/auth/guards/access.guard';
 
 const dbName = 'blogs-hws';
 
+const useCases = [
+  CreateUserUseCase,
+  RecoveryPasswordUseCase,
+  ConfirmEmailUseCase,
+  CheckCredentialsUseCase,
+  NewPasswordUseCase,
+  RefreshAndAccessTokenUseCase,
+  ResendingConfirmEmailUseCase,
+];
 @Module({
   imports: [
     configModule,
@@ -76,6 +95,7 @@ const dbName = 'blogs-hws';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
     }),
+    CqrsModule,
   ],
   controllers: [
     AppController,
@@ -100,12 +120,15 @@ const dbName = 'blogs-hws';
     UsersService,
     UsersRepository,
     UsersQueryRepository,
-    AuthService,
     AuthRepository,
     AuthQueryRepository,
     LocalStrategy,
     JwtStrategy,
     BasicStrategy,
+    EmailAdapter,
+    AuthService,
+    AccessRolesGuard,
+    ...useCases,
   ],
 })
 export class AppModule {}

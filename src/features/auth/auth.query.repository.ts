@@ -27,16 +27,4 @@ export class AuthQueryRepository {
       ],
     });
   }
-
-  async findUserByConfirmationCode(emailConfirmationCode: string) {
-    return this.userModel.findOne({
-      'emailConfirmation.confirmationCode': emailConfirmationCode,
-    });
-  }
-
-  async findUserByRecoveryCode(recoveryCode: string) {
-    return this.userModel.findOne({
-      'passwordRecovery.recoveryCode': recoveryCode,
-    });
-  }
 }

@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PostsRepository } from './posts.repository';
-import { PostsViewModel } from './models/output/PostsViewModel';
+import { LikesStatus, PostsViewModel } from './models/output/PostsViewModel';
 import { CreatePostServiceModel } from './models/input/CreatePostModel';
 import { UpdatePostModel } from './models/input/UpdatePostModule';
 import { BlogsRepository } from '../blogs/blogs.repository';
+import { CreateCommentServiceModel } from '../comments/models/input/CreateCommentModel';
+import { CommentViewModel } from '../comments/models/output/CommentViewModel';
 
 @Injectable()
 export class PostsService {
@@ -32,7 +34,7 @@ export class PostsService {
 
     return await this.postsRepository.createPost(newPost);
   }
-  /*  async createCommentByPost(
+  async createCommentByPost(
     createData: CreateCommentServiceModel,
     postId: string,
   ): Promise<CommentViewModel> {
@@ -51,11 +53,11 @@ export class PostsService {
     };
 
     return await this.postsRepository.createCommentByPost(newComment);
-  }*/
+  }
   async updatePost(id: string, upData: UpdatePostModel): Promise<boolean> {
     return await this.postsRepository.updatePost(id, upData);
   }
-  /*  async updateLikeStatus(
+  async updateLikeStatus(
     id: string,
     upData: any,
     likeStatus: LikesStatus,
@@ -66,7 +68,7 @@ export class PostsService {
       login: upData.login,
     };
     return await this.postsRepository.updateLike(id, likesData, likeStatus);
-  }*/
+  }
   async deletePostById(id: string): Promise<boolean> {
     return await this.postsRepository.deletePost(id);
   }

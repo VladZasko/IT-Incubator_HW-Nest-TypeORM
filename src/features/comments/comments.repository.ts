@@ -7,6 +7,8 @@ import {
   CommentDocument,
 } from '../../db/schemes/comments.schemes';
 import { commentMapper } from './mappers/mappers';
+import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
+import { LikesStatus } from '../posts/models/output/PostsViewModel';
 @Injectable()
 export class CommentsRepository {
   constructor(
@@ -22,7 +24,7 @@ export class CommentsRepository {
     }
     return commentMapper(comment);
   }
-  /*  async updateComment(
+  async updateComment(
     id: string,
     upData: UpdateFeedbackModuleModel,
   ): Promise<boolean> {
@@ -35,54 +37,99 @@ export class CommentsRepository {
       },
     );
     return !!foundComment.matchedCount;
-  }*/
-  /*  async updateLike(id: string, upData: any): Promise<boolean> {
-    const comment = await FeedbacksModel.findById({_id: new ObjectId(id)})
+  }
+  async updateLike(id: string, upData: any): Promise<boolean> {
+    const comment = await this.commentModel.findById({ _id: new ObjectId(id) });
 
     const isLiked = comment!.likesInfo.likes.includes(upData.userId);
     const isDisliked = comment!.likesInfo.dislikes.includes(upData.userId);
 
-    if (upData.likeStatus === LikesStatus.Like) {
-      if (isLiked) {
-        return true
-      } else {
-        comment!.likesInfo.likes.push(upData.userId);
-
-        if (isDisliked) {
-          comment!.likesInfo.dislikes = comment!.likesInfo.dislikes.filter((id: string) => id !== upData.userId);
-        }
-      }
-    } else if (upData.likeStatus === LikesStatus.Dislike) {
-      if (isDisliked) {
-        return true
-      } else {
-        comment!.likesInfo.dislikes.push(upData.userId);
-
+    switch (upData.likeStatus) {
+      case LikesStatus.Like:
         if (isLiked) {
-          comment!.likesInfo.likes = comment!.likesInfo.likes.filter((id: string) => id !== upData.userId);
+          return true;
+        } else {
+          await this.commentModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $push: {
+                'likesInfo.likes': upData.userId,
+              },
+            },
+          );
+          if (isDisliked) {
+            await this.commentModel.updateOne(
+              { _id: new ObjectId(id) },
+              {
+                $pull: {
+                  'likesInfo.dislikes': upData.userId,
+                },
+              },
+            );
+          }
         }
-      }
-    } else if (upData.likeStatus === LikesStatus.None) {
-      if (isDisliked) {
-        comment!.likesInfo.dislikes = comment!.likesInfo.dislikes.filter((id: string) => id !== upData.userId);
-      } else if (isLiked) {
-        comment!.likesInfo.likes = comment!.likesInfo.likes.filter((id: string) => id !== upData.userId);
-      } else {
-        return true
-      }
-    } else{
-      return false
+        break;
+
+      case LikesStatus.Dislike:
+        if (isDisliked) {
+          return true;
+        } else {
+          await this.commentModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $push: {
+                'likesInfo.dislikes': upData.userId,
+              },
+            },
+          );
+          if (isLiked) {
+            await this.commentModel.updateOne(
+              { _id: new ObjectId(id) },
+              {
+                $pull: {
+                  'likesInfo.likes': upData.userId,
+                },
+              },
+            );
+          }
+        }
+        break;
+
+      case LikesStatus.None:
+        if (isDisliked) {
+          await this.commentModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $pull: {
+                'likesInfo.dislikes': upData.userId,
+              },
+            },
+          );
+        } else if (isLiked) {
+          await this.commentModel.updateOne(
+            { _id: new ObjectId(id) },
+            {
+              $pull: {
+                'likesInfo.likes': upData.userId,
+              },
+            },
+          );
+        } else {
+          return true;
+        }
+        break;
+
+      default:
+        return false;
     }
 
-    await comment!.save();
-
     return true;
-  }*/
-  /*  async deleteCommentById(id: string): Promise<boolean> {
+  }
+  async deleteCommentById(id: string): Promise<boolean> {
     const foundComment = await this.commentModel.deleteOne({
       _id: new ObjectId(id),
     });
 
     return !!foundComment.deletedCount;
-  }*/
+  }
 }

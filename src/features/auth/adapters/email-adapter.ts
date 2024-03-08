@@ -1,7 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import { EmailAdapterDto } from '../models/input/EmailAdapterDto';
 
-export const emailAdapter = {
+export class EmailAdapter {
   async sendCode(newUser: EmailAdapterDto): Promise<boolean> {
     const transport = nodemailer.createTransport({
       service: 'Gmail',
@@ -25,7 +25,7 @@ export const emailAdapter = {
         ' </p>', // html body
     });
     return true;
-  },
+  }
   async sendNewCode(user: EmailAdapterDto): Promise<boolean> {
     const transport = nodemailer.createTransport({
       service: 'Gmail',
@@ -49,7 +49,7 @@ export const emailAdapter = {
         ' </p>', // html body
     });
     return true;
-  },
+  }
   async sendRecoveryCode(user: EmailAdapterDto): Promise<boolean> {
     const transport = nodemailer.createTransport({
       service: 'Gmail',
@@ -73,5 +73,5 @@ export const emailAdapter = {
         ' </p>', // html body
     });
     return true;
-  },
-};
+  }
+}

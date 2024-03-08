@@ -4,7 +4,7 @@ export enum LikesStatus {
   None = 'None',
 }
 
-type NewestLikesType = {
+export type NewestLikesType = {
   addedAt: string;
   userId: string;
   login: string;
