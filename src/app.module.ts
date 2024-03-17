@@ -50,7 +50,14 @@ import { EmailAdapter } from './features/auth/adapters/email-adapter';
 import { AuthService } from './features/auth/application/auth.service';
 import { NewPasswordUseCase } from './features/auth/application/use-cases/new.password.use.case';
 import { ResendingConfirmEmailUseCase } from './features/auth/application/use-cases/resending.confirm.email.use.case';
-import { AccessRolesGuard } from './features/auth/guards/access.guard';
+import { AccessRolesGuard } from './features/auth/guards/access.roles.guard';
+import { IsBlogIdExistConstraint } from './utils/customDecorators/BlogIdCustomDecorator';
+import { RefreshTokenGuard } from './features/auth/guards/refresh-token.guard';
+import { SecurityDevicesController } from './features/securityDevices/security.devices.controller';
+import { SecurityDevicesService } from './features/securityDevices/security.devices.servis';
+import { SecurityDevicesQueryRepository } from './features/securityDevices/security.devices.query.repository';
+import { SecurityDevicesRepository } from './features/securityDevices/security.devices.repository';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 const dbName = 'blogs-hws';
 
@@ -95,6 +102,12 @@ const useCases = [
     JwtModule.register({
       secret: process.env.JWT_SECRET,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 10000,
+        limit: 5,
+      },
+    ]),
     CqrsModule,
   ],
   controllers: [
@@ -105,8 +118,13 @@ const useCases = [
     CommentsController,
     UsersController,
     AuthController,
+    SecurityDevicesController,
   ],
   providers: [
+    // {
+    //   provide: APP_GUARD,
+    //   useClass: ThrottlerGuard,
+    // },
     AppService,
     BlogsService,
     BlogsRepository,
@@ -128,6 +146,11 @@ const useCases = [
     EmailAdapter,
     AuthService,
     AccessRolesGuard,
+    IsBlogIdExistConstraint,
+    RefreshTokenGuard,
+    SecurityDevicesService,
+    SecurityDevicesQueryRepository,
+    SecurityDevicesRepository,
     ...useCases,
   ],
 })

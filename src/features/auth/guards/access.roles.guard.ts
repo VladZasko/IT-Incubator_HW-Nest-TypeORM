@@ -33,7 +33,7 @@ export class AccessRolesGuard implements CanActivate {
       request.userId = decoded.sub; // Добавить декодированные данные из токена в объект запроса
       return true;
     } catch (error) {
-      return false; // Если токен недействителен, отклонить запрос
+      return true; // Если токен недействителен, отклонить запрос
     }
   }
 }

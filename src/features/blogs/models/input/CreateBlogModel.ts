@@ -1,4 +1,4 @@
-import { Length, Matches } from 'class-validator';
+import { Length, Matches, NotContains } from 'class-validator';
 import { ObjectId } from 'mongodb';
 /*export type CreateBlogModel = {
   name: string;
@@ -7,9 +7,11 @@ import { ObjectId } from 'mongodb';
 };*/
 
 export class CreateBlogModel {
+  @Matches(`^(?! ).*(?<! )$`)
   @Length(1, 15)
   name: string;
 
+  @Matches(`^(?! ).*(?<! )$`)
   @Length(1, 500)
   description: string;
 

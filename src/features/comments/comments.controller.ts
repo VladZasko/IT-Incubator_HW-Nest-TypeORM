@@ -4,6 +4,8 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Put,
@@ -16,6 +18,7 @@ import { UpdateLikesModule } from './models/input/UpdateLikesModule';
 import { ObjectId } from 'mongodb';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
+import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 
 @Controller('comments')
 export class CommentsController {
@@ -24,10 +27,10 @@ export class CommentsController {
     protected commentsQueryRepository: CommentsQueryRepository,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessRolesGuard)
   @Get(':id')
   async getComment(@Request() req, @Param('id') commentId: string) {
-    const likeStatusData = req.user.userId;
+    const likeStatusData = req.userId;
 
     if (!ObjectId.isValid(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
@@ -48,6 +51,7 @@ export class CommentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Put(':id/like-status')
   async updateLikeStatus(
     @Request() req,
@@ -82,6 +86,7 @@ export class CommentsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Put(':id')
   async updateComment(
     @Request() req,
@@ -119,11 +124,29 @@ export class CommentsController {
 
     return updateComment;
   }
+
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
-  deleteComment(@Param('id') commentId: string) {
+  async deleteComment(@Param('id') commentId: string, @Request() req) {
     if (!ObjectId.isValid(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
+
+    const comment = await this.commentsService.getCommentById(commentId);
+
+    if (!comment) {
+      throw new NotFoundException([
+        { message: 'comment not found', field: 'comment' },
+      ]);
+    }
+
+    if (comment!.commentatorInfo.userId !== req.user!.userId) {
+      throw new ForbiddenException([
+        { message: 'comment not found', field: 'comment' },
+      ]);
+    }
+
     const deletePost = this.commentsService.deleteCommentById(commentId);
     return deletePost;
   }

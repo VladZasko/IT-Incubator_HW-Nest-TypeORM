@@ -24,17 +24,13 @@ export class RefreshAndAccessTokenUseCase {
 
   async refreshToken(dataRefreshToken: any) {
     const payload = {
-      sub: {
-        deviceId: dataRefreshToken.deviceId,
-        id: dataRefreshToken.userId,
-        issuedAt: dataRefreshToken.issuedAt,
-      },
+      deviceId: dataRefreshToken.deviceId,
+      id: dataRefreshToken.userId,
+      issuedAt: dataRefreshToken.issuedAt,
     };
-    return {
-      refreshToken: this.jwtService.sign(payload, {
-        expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
-      }),
-    };
+    return this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
+    });
   }
 
   async createRefreshTokensMeta(refreshTokenDto: any) {

@@ -10,6 +10,8 @@ import {
   HttpCode,
   HttpStatus,
   UnauthorizedException,
+  Ip,
+  NotFoundException,
 } from '@nestjs/common';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,7 +27,10 @@ import { RefreshAndAccessTokenUseCase } from './application/use-cases/refresh.an
 import { CommandBus } from '@nestjs/cqrs';
 import { ResendingConfirmEmailCommand } from './application/use-cases/resending.confirm.email.use.case';
 import { NewPasswordCommand } from './application/use-cases/new.password.use.case';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
+@UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -33,7 +38,9 @@ export class AuthController {
     protected authQueryRepository: AuthQueryRepository,
     private commandBus: CommandBus,
   ) {}
+
   @UseGuards(LocalAuthGuard)
+  @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Request() req, @Response({ passthrough: true }) res) {
     const accessToken = await this.refreshAndAccessTokenUseCase.login(
@@ -55,10 +62,14 @@ export class AuthController {
       dataRefreshToken,
     );
 
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
-    res.status(200).send({
-      accessToken: accessToken,
-    });
+    res
+      .cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true,
+      })
+      .send({
+        accessToken: accessToken,
+      });
   }
   @Post('password-recovery')
   async passwordRecovery(@Body() email: string) {
@@ -72,33 +83,31 @@ export class AuthController {
     await this.commandBus.execute(new NewPasswordCommand(inputModel));
     return;
   }
-  /*@Post('refresh-token')
-  async refreshToken(@Cookies) {
-    const refreshToken = req.cookies.refreshToken;
 
+  @UseGuards(RefreshTokenGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh-token')
+  async refreshToken(
+    @Ip() ip,
+    @Request() req,
+    @Response({ passthrough: true }) res,
+  ) {
     const dataRefreshToken = {
       issuedAt: new Date().toISOString(),
       deviceId: req.refreshTokenMeta!.deviceId,
-      userId: req.user!.id,
-      ip: req.ip!,
+      userId: req.userId,
+      ip: ip,
       deviseName: req.headers['user-agent'] ?? 'Device',
     };
 
     try {
-      const accessToken = await jwtService.createJWTAccessToken(req.user!.id);
+      const accessToken = await this.refreshAndAccessTokenUseCase.login(
+        req.user.id,
+      );
       const newRefreshToken =
-        await jwtService.createJWTRefreshToken(dataRefreshToken);
-      await RefreshTokensMetaModel.updateOne(
-        { deviceId: req.refreshTokenMeta!.deviceId },
-        {
-          $set: {
-            issuedAt: dataRefreshToken.issuedAt,
-            deviceId: dataRefreshToken.deviceId,
-            userId: dataRefreshToken.userId,
-            ip: dataRefreshToken.ip,
-            deviseName: dataRefreshToken.deviseName,
-          },
-        },
+        await this.refreshAndAccessTokenUseCase.refreshToken(dataRefreshToken);
+      await this.refreshAndAccessTokenUseCase.updateRefreshTokensMeta(
+        dataRefreshToken,
       );
 
       res
@@ -106,16 +115,20 @@ export class AuthController {
           httpOnly: true,
           secure: true,
         })
-        .status(HTTP_STATUSES.OK_200)
-        .send(accessToken);
+        .send({
+          accessToken: accessToken,
+        });
     } catch (error) {
-      return res
-        .status(HTTP_STATUSES.UNAUTHORIZED_401)
-        .send('Invalid refresh token.');
+      throw new UnauthorizedException([
+        {
+          message: 'Access Denied. No refresh token provided.',
+          field: 'refreshToken',
+        },
+      ]);
     }
 
     return;
-  }*/
+  }
   @Post('registration-confirmation')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registrationConfirmation(@Body('code') code: string) {
@@ -136,6 +149,7 @@ export class AuthController {
     );
     return mapServiceCodeToHttpStatus(newUser);
   }
+
   @Post('registration-email-resending')
   @HttpCode(HttpStatus.NO_CONTENT)
   async registrationEmailResending(@Body('email') email: string) {
@@ -150,14 +164,20 @@ export class AuthController {
       ]);
     }
   }
-  /*  @Post()
-  async logout() {
-    const foundDevice = await this.authService.deleteRefreshTokensMeta(inputModel);
+
+  @UseGuards(RefreshTokenGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post('logout')
+  async logout(@Request() req) {
+    const foundDevice =
+      await this.refreshAndAccessTokenUseCase.deleteRefreshTokensMeta(
+        req.refreshTokenMeta!.deviceId,
+      );
     if (!foundDevice) {
       throw new NotFoundException();
     }
     return;
-  }*/
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
