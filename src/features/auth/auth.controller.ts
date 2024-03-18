@@ -38,7 +38,6 @@ export class AuthController {
     protected authQueryRepository: AuthQueryRepository,
     private commandBus: CommandBus,
   ) {}
-
   @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
