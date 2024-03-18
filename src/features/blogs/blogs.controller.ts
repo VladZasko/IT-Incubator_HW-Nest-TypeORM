@@ -10,6 +10,8 @@ import {
   Post,
   Put,
   Query,
+  Request,
+  Scope,
   UseGuards,
 } from '@nestjs/common';
 import { BlogsService } from './blogs.servis';
@@ -19,13 +21,20 @@ import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { ObjectId } from 'mongodb';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
+import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 
-@Controller('blogs')
+@Controller({ path: 'blogs', scope: Scope.REQUEST })
 export class BlogsController {
+  private readonly blogsService;
+  private readonly blogsQueryRepository;
   constructor(
-    protected blogsService: BlogsService,
-    protected blogsQueryRepository: BlogsQueryRepository,
-  ) {}
+    blogsService: BlogsService,
+    blogsQueryRepository: BlogsQueryRepository,
+  ) {
+    this.blogsService = blogsService;
+    this.blogsQueryRepository = blogsQueryRepository;
+    console.log('CONTROLLER created');
+  }
   @Get()
   async getBlogs(@Query() query: QueryBlogsModel) {
     const blog = await this.blogsQueryRepository.findBlogs(query);
@@ -35,11 +44,16 @@ export class BlogsController {
     }
     return blog;
   }
+
+  @UseGuards(AccessRolesGuard)
   @Get(':id/posts')
   async getPostsByBlog(
     @Query() query: QueryBlogsModel,
     @Param('id') blogId: string,
+    @Request() req,
   ) {
+    const likeStatusData = req.userId;
+
     if (!ObjectId.isValid(blogId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
@@ -51,7 +65,11 @@ export class BlogsController {
       throw new NotFoundException('Post not found');
     }
 
-    return await this.blogsQueryRepository.getPostsByBlogId(query, blogId);
+    return await this.blogsQueryRepository.getPostsByBlogId(
+      query,
+      blogId,
+      likeStatusData,
+    );
   }
   @Get(':id')
   async getBlog(@Param('id') blogId: string) {

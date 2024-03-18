@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 import { BlogsRepository } from './blogs.repository';
 import { BlogsViewModel } from './models/output/BlogsViewModel';
 import { UpdateBlogModel } from './models/input/UpdateBlogModule';
@@ -6,9 +6,13 @@ import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { PostsViewModel } from '../posts/models/output/PostsViewModel';
 
-@Injectable()
+@Injectable({ scope: Scope.DEFAULT })
 export class BlogsService {
-  constructor(protected blogsRepository: BlogsRepository) {}
+  private readonly blogsRepository;
+  constructor(blogsRepository: BlogsRepository) {
+    this.blogsRepository = blogsRepository;
+    console.log('SERVICE created');
+  }
 
   async createPostBlog(
     blogId: string,

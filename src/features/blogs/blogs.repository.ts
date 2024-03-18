@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { BlogDBType, BlogDocument } from '../../db/schemes/blogs.schemes';
 import { Model } from 'mongoose';
@@ -11,12 +11,16 @@ import { postQueryMapper } from '../posts/mappers/mappers';
 import { PostsViewModel } from '../posts/models/output/PostsViewModel';
 import { BlogsViewModel } from './models/output/BlogsViewModel';
 
-@Injectable()
+@Injectable({ scope: Scope.DEFAULT })
 export class BlogsRepository {
   constructor(
     @InjectModel(BlogDBType.name) private blogModel: Model<BlogDocument>,
     @InjectModel(PostDBType.name) private postModel: Model<PostDocument>,
-  ) {}
+  ) {
+    this.blogModel = blogModel;
+    this.postModel = postModel;
+    console.log('REPO created');
+  }
   async createPostBlog(
     createData: CreatePostBlogRepoModel,
   ): Promise<PostsViewModel> {

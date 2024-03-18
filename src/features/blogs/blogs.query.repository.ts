@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { BlogDBType, BlogDocument } from '../../db/schemes/blogs.schemes';
 import { Model } from 'mongoose';
@@ -9,7 +9,8 @@ import { ObjectId } from 'mongodb';
 import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
 import { postQueryMapper } from '../posts/mappers/mappers';
 import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
-@Injectable()
+
+@Injectable({ scope: Scope.REQUEST })
 export class BlogsQueryRepository {
   constructor(
     @InjectModel(BlogDBType.name) private blogModel: Model<BlogDocument>,

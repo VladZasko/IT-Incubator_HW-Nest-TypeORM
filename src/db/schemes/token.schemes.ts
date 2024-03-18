@@ -7,7 +7,7 @@ export type RefreshTokensMetaDocument =
 
 @Schema()
 export class RefreshTokensMetaDBType {
-  _id: ObjectId;
+  //_id: ObjectId;
 
   @Prop({
     required: true,

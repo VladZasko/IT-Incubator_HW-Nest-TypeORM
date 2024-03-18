@@ -1,12 +1,15 @@
-import { Length } from 'class-validator';
+import { Length, Matches } from 'class-validator';
 
 export class CreatePostBlogModel {
+  @Matches(`^(?! ).*(?<! )$`)
   @Length(1, 30)
   title: string;
 
+  @Matches(`^(?! ).*(?<! )$`)
   @Length(1, 100)
   shortDescription: string;
 
+  @Matches(`^(?! ).*(?<! )$`)
   @Length(1, 1000)
   content: string;
 }

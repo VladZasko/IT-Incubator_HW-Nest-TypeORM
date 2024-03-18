@@ -1,9 +1,13 @@
-export type CreateCommentModel = {
+import { Length, Matches } from 'class-validator';
+
+export class CreateCommentModel {
   /**
    * Post title, shortDescription, content, blogId
    */
+  @Matches(`^(?! ).*(?<! )$`)
+  @Length(20, 300)
   content: string;
-};
+}
 export type CreateCommentServiceModel = {
   /**
    * Post title, shortDescription, content, blogId
