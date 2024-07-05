@@ -6,45 +6,60 @@ import {
   RefreshTokensMetaDocument,
 } from '../../db/schemes/token.schemes';
 import { securityDevicesRepositoryMapper } from './mappers/mappers';
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
 
 @Injectable()
 export class SecurityDevicesRepository {
   constructor(
-    @InjectModel(RefreshTokensMetaDBType.name)
-    private refreshTokenMetaModel: Model<RefreshTokensMetaDocument>,
+      @InjectDataSource()
+      protected dataSource: DataSource,
   ) {}
   async getDevice(deviceId: string): Promise<RefreshTokensMetaDBType | null> {
-    const sessions = await this.refreshTokenMetaModel.findOne({
-      deviceId: deviceId,
-    });
+    const query = `
+    SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
+        FROM public."RefreshTokenMeta"
+        WHERE "deviceId" = $1
+    `
+    const result = await this.dataSource.query(
+        query,[
+          deviceId
+        ]);
 
-    if (!sessions) {
+    if (!result[0]) {
       return null;
     }
 
-    return securityDevicesRepositoryMapper(sessions);
+    return securityDevicesRepositoryMapper(result[0]);
   }
 
   async deleteDevice(deleteData: any): Promise<boolean> {
-    const foundDevice = await this.refreshTokenMetaModel.deleteOne({
-      deviceId: deleteData.deviceId,
-    });
+    const query = `
+        DELETE FROM public."RefreshTokenMeta"
+            WHERE "deviceId" = $1
+            `
 
-    if (!foundDevice) {
-      return false;
-    }
+    await this.dataSource.query(
+        query,[
+          deleteData.deviceId,
+        ]);
 
-    return !!foundDevice.deletedCount;
+      return true;
+
   }
 
   async deleteAllDevice(deleteData: any): Promise<boolean> {
-    const foundDevice = await this.refreshTokenMetaModel.deleteMany({
-      userId: deleteData.userId,
-      deviceId: {
-        $ne: deleteData.deviceId,
-      },
-    });
+    const query = `
+        DELETE FROM public."RefreshTokenMeta"
+        WHERE "userId" = $1 AND "deviceId" != $2;
+            `
 
-    return !!foundDevice.deletedCount;
+    await this.dataSource.query(
+        query, [
+          deleteData.userId,
+          deleteData.deviceId,
+        ]);
+
+    return true;
   }
 }

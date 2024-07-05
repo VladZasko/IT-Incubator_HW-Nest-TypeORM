@@ -1,31 +1,33 @@
 import request from "supertest";
-import {HTTP_STATUSES, HttpStatusType} from "../../../../src/utils/utils";
 import {RouterPaths} from "../../../../src/routerPaths";
-import {app} from "../../../../src/app";
 import {ErrorMessage} from "../../../../src/utils/errors";
-import {CreateFeedbackModel} from "../../../../src/features/feedback/models/CreateFeedbackModel";
-import {errors} from "../../../utils/error";
+import {HttpStatus, INestApplication} from "@nestjs/common";
+import {HttpStatusType} from "../../../utils/utils";
+import {CreateCommentModel} from "../../../../src/features/comments/models/input/CreateCommentModel";
 
 
-export const feedbacksTestManager = {
-    async createComment(data: CreateFeedbackModel,
+export class FeedbacksTestManager {
+    constructor(protected readonly app: INestApplication) {}
+    async createComment(data: CreateCommentModel,
                         post: any,
                         token: any,
-                        expectedStatusCode: HttpStatusType = HTTP_STATUSES.CREATED_201,
-                        expectedErrorsMessages?: ErrorMessage) {
+                        expectedStatusCode: HttpStatusType = HttpStatus.CREATED,
+                        expectedErrorsMessagesLength?: number) {
 
-        const response = await request(app)
+        const response = await request(this.app.getHttpServer())
             .post(`${RouterPaths.posts}/${post.id}/comments`)
             .set('authorization', `Bearer ${token}`)
             .send(data)
             .expect(expectedStatusCode)
 
-        if (expectedStatusCode === HTTP_STATUSES.BAD_REQUEST_400) {
-            await errors.errors(response.body, expectedErrorsMessages)
+        if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
+            expect(response.body.errorsMessages.length).toBe(
+                expectedErrorsMessagesLength,
+            );
         }
 
         let createdEntity = response.body;
-        if (expectedStatusCode === HTTP_STATUSES.CREATED_201) {
+        if (expectedStatusCode === HttpStatus.CREATED) {
             createdEntity = response.body;
             expect(createdEntity).toEqual({
                 ...createdEntity,
@@ -34,65 +36,65 @@ export const feedbacksTestManager = {
             })
         }
         return {response: response, createdEntity: createdEntity};
-    },
+    }
 
-    async createComments(data: CreateFeedbackModel, post: any, token: any) {
+    async createComments(data: CreateCommentModel, post: any, token: any) {
 
-        const comments = []
+        const comments: any = []
 
         for (let i = 0; i < 12; i++) {
             const dataContent = {
                 content: `${data.content}${i}`
             }
-            const result = await feedbacksTestManager
-                .createComment(dataContent, post, token)
+            const result = await this.createComment(dataContent, post, token)
 
             comments.unshift(result.createdEntity)
         }
 
         return comments;
-    },
-
-    async updateComment(data: CreateFeedbackModel,
+    }
+    async updateComment(data: CreateCommentModel,
                         comment: any,
                         token: any,
-                        expectedStatusCode: HttpStatusType = HTTP_STATUSES.NO_CONTENT_204,
-                        expectedErrorsMessages?: ErrorMessage) {
+                        expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
+                        expectedErrorsMessagesLength?: number) {
 
-        const response = await request(app)
+        const response = await request(this.app.getHttpServer())
             .put(`${RouterPaths.feedbacks}/${comment.id}`)
             .set('authorization', `Bearer ${token}`)
             .send(data)
             .expect(expectedStatusCode)
 
-        if (expectedStatusCode === HTTP_STATUSES.BAD_REQUEST_400) {
-            await errors.errors(response.body, expectedErrorsMessages)
+        if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
+            expect(response.body.errorsMessages.length).toBe(
+                expectedErrorsMessagesLength,
+            );
         }
 
-        if (expectedStatusCode === HTTP_STATUSES.NO_CONTENT_204) {
-            await request(app)
+        if (expectedStatusCode === HttpStatus.NO_CONTENT) {
+            await request(this.app.getHttpServer())
                 .get(`${RouterPaths.feedbacks}/${comment.id}`)
-                .expect(HTTP_STATUSES.OK_200, {
+                .expect(HttpStatus.OK, {
                     ...comment,
                     content: data.content
                 })
         }
         return {response: response};
-    },
+    }
     async deleteComment(comment: any,
                         token: any,
-                        expectedStatusCode: HttpStatusType = HTTP_STATUSES.NO_CONTENT_204
+                        expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT
     ) {
 
-        const response = await request(app)
+        const response = await request(this.app.getHttpServer())
             .delete(`${RouterPaths.feedbacks}/${comment.id}`)
             .set('authorization', `Bearer ${token}`)
             .expect(expectedStatusCode)
 
-        if (expectedStatusCode === HTTP_STATUSES.NO_CONTENT_204) {
-            await request(app)
+        if (expectedStatusCode === HttpStatus.NO_CONTENT) {
+            await request(this.app.getHttpServer())
                 .get(`${RouterPaths.feedbacks}/${comment.id}`)
-                .expect(HTTP_STATUSES.NOT_FOUND_404)
+                .expect(HttpStatus.NOT_FOUND)
         }
         return {response: response};
     }

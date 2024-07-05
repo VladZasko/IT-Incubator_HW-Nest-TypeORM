@@ -1,7 +1,5 @@
 import request from 'supertest';
-import { ErrorMessage } from '../../../../src/utils/errors';
 import { authModel } from '../../../../src/features/auth/models/authModels';
-import { errors } from '../../../utils/error';
 import { CreateUserModel } from '../../../../src/features/users/models/input/CreateUserModel';
 import { EmailAdapter } from '../../../../src/features/auth/adapters/email-adapter';
 import { HttpStatus, INestApplication } from '@nestjs/common';
@@ -11,23 +9,25 @@ import { dataTestUserCreate01 } from '../../users/dataForTest/dataTestforUser';
 import { RouterPaths } from '../../../../src/routerPaths';
 import { UserDBType } from '../../../../src/db/schemes/users.schemes';
 
-let app: INestApplication;
-const httpServer = app.getHttpServer();
 
 export class AuthTestManager {
-  constructor(protected authQueryRepository: AuthQueryRepository) {}
+  constructor(protected authQueryRepository: AuthQueryRepository,
+              protected readonly app: INestApplication,
+              protected readonly emailAdapter: EmailAdapter) {}
   async createToken(
     data: authModel,
     expectedStatusCode: HttpStatusType = HttpStatus.OK,
-    expectedErrorsMessages?: ErrorMessage,
+    expectedErrorsMessagesLength?: number,
   ) {
-    const result = await request(httpServer)
+    const result = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/login`)
       .send(data)
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
-      await errors.errors(result.body, expectedErrorsMessages);
+      expect(result.body.errorsMessages.length).toBe(
+          expectedErrorsMessagesLength,
+      );
     }
 
     let createdEntity;
@@ -46,19 +46,21 @@ export class AuthTestManager {
   async userEmailRegistration(
     data: CreateUserModel,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
-    expectedErrorsMessages?: ErrorMessage,
+    expectedErrorsMessagesLength?: number,
   ) {
     jest
-      .spyOn(EmailAdapter, 'sendCode')
+      .spyOn(this.emailAdapter, 'sendCode')
       .mockImplementation(() => Promise.resolve(true));
 
-    const response = await request(httpServer)
+    const response = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/registration`)
       .send(data)
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
-      await errors.errors(response.body, expectedErrorsMessages);
+      expect(response.body.errorsMessages.length).toBe(
+          expectedErrorsMessagesLength,
+      );
     }
 
     const user = await this.authQueryRepository.findByLoginOrEmail(
@@ -66,53 +68,57 @@ export class AuthTestManager {
     );
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
-      expect(user!.accountData.login).toBe(data.login);
-      expect(user!.emailConfirmation!.isConfirmed).toBe(false);
+      expect(user!.login).toBe(data.login);
+      expect(user!.isConfirmed).toBe(false);
     }
     return { response: response, createEntity: user };
   }
   async userEmailConfirmation(
-    data: UserDBType,
+    data: any,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
-    expectedErrorsMessages?: ErrorMessage,
+    expectedErrorsMessagesLength?: number,
   ) {
-    const response = await request(httpServer)
+    const response = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/registration-confirmation`)
-      .send({ code: data.emailConfirmation!.confirmationCode })
+      .send({ code: data.confirmationCode })
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
-      await errors.errors(response.body, expectedErrorsMessages);
+      expect(response.body.errorsMessages.length).toBe(
+          expectedErrorsMessagesLength,
+      );
     }
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
       const userConfirmation =
         await this.authQueryRepository.findByLoginOrEmail(
-          data.accountData.email,
+          data.email,
         );
 
-      expect(userConfirmation!.accountData.login).toBe(data.accountData.login);
-      expect(userConfirmation!.emailConfirmation!.isConfirmed).toBe(true);
+      expect(userConfirmation!.login).toBe(data.login);
+      expect(userConfirmation!.isConfirmed).toBe(true);
     }
 
     return { response: response };
   }
   async userEmailConfirmationResending(
-    data: UserDBType,
+    data: any,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
-    expectedErrorsMessages?: ErrorMessage,
+    expectedErrorsMessagesLength?: number,
   ) {
     jest
-      .spyOn(EmailAdapter, 'sendNewCode')
+      .spyOn(this.emailAdapter, 'sendNewCode')
       .mockImplementation(() => Promise.resolve(true));
 
-    const response = await request(httpServer)
+    const response = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/registration-email-resending`)
-      .send({ email: data.accountData.email })
+      .send({ email: data.email })
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
-      await errors.errors(response.body, expectedErrorsMessages);
+      expect(response.body.errorsMessages.length).toBe(
+          expectedErrorsMessagesLength,
+      );
     }
 
     const userConfirmation = await this.authQueryRepository.findByLoginOrEmail(
@@ -120,9 +126,9 @@ export class AuthTestManager {
     );
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
-      expect(userConfirmation!.accountData.login).toBe(data.accountData.login);
-      expect(userConfirmation!.emailConfirmation!.confirmationCode).not.toBe(
-        data.emailConfirmation!.confirmationCode,
+      expect(userConfirmation!.login).toBe(data.login);
+      expect(userConfirmation!.confirmationCode).not.toBe(
+        data.confirmationCode,
       );
     }
 
@@ -131,26 +137,28 @@ export class AuthTestManager {
   async userEmailRecoveryPassword(
     email: string,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
-    expectedErrorsMessages?: ErrorMessage,
+    expectedErrorsMessagesLength?: number,
   ) {
     jest
-      .spyOn(EmailAdapter, 'sendRecoveryCode')
+      .spyOn(this.emailAdapter, 'sendRecoveryCode')
       .mockImplementation(() => Promise.resolve(true));
 
-    const response = await request(httpServer)
+    const response = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/password-recovery`)
       .send({ email: email })
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
-      await errors.errors(response.body, expectedErrorsMessages);
+      expect(response.body.errorsMessages.length).toBe(
+          expectedErrorsMessagesLength,
+      );
     }
 
     const user = await this.authQueryRepository.findByLoginOrEmail(email);
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
-      expect(user!.passwordRecovery!.recoveryCode).toEqual(expect.any(String));
-      expect(user!.passwordRecovery!.expirationDate).toEqual(expect.any(Date));
+      expect(user!.recoveryCode).toEqual(expect.any(String));
+      expect(user!.expirationDate).toEqual(expect.any(Date));
     }
     return { response: response, createEntity: user };
   }

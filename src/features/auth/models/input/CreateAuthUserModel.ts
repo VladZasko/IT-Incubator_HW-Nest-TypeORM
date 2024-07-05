@@ -5,7 +5,8 @@ export type CreateAuthUserPassModel = {
         email: string,
         createdAt: string,
         passwordHash: string,
-        passwordSalt: string
+        passwordSalt: string,
+        id: string,
     }
     emailConfirmation: {
         confirmationCode: string,

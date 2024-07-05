@@ -1,5 +1,7 @@
-import { AuthRepository } from '../../auth.repository';
+import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {AuthRepository} from "../../auth.repository";
+import {CreatePostBlogModel} from "../../models/input/ConfirmCodeModel";
 export class ConfirmEmailCommand {
   constructor(public code: string) {}
 }
@@ -15,10 +17,10 @@ export class ConfirmEmailUseCase
       command.code,
     );
     if (!user) return false;
-    if (user.emailConfirmation!.isConfirmed) return false;
-    if (user.emailConfirmation!.confirmationCode !== command.code) return false;
-    if (user.emailConfirmation!.expirationDate < new Date()) return false;
+    if (user.isConfirmed) return false;
+    if (user.confirmationCode !== command.code) return false;
+    if (user.expirationDate < new Date()) return false;
 
-    return await this.authRepository.updateConfirmation(user._id);
+    return await this.authRepository.updateConfirmation(user.userId);
   }
 }

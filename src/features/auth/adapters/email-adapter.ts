@@ -1,6 +1,8 @@
 import * as nodemailer from 'nodemailer';
 import { EmailAdapterDto } from '../models/input/EmailAdapterDto';
+import {Injectable} from "@nestjs/common";
 
+@Injectable()
 export class EmailAdapter {
   async sendCode(newUser: EmailAdapterDto): Promise<boolean> {
     const transport = nodemailer.createTransport({
@@ -10,7 +12,7 @@ export class EmailAdapter {
       secure: true,
       auth: {
         user: 'uladzislauzasko@gmail.com',
-        pass: 'ryko hyxu ntid aqrf',
+        pass: "umsq htqn xobb yfwj",
       },
     });
     await transport.sendMail({
@@ -34,7 +36,7 @@ export class EmailAdapter {
       secure: true,
       auth: {
         user: 'uladzislauzasko@gmail.com',
-        pass: 'ryko hyxu ntid aqrf',
+        pass: "umsq htqn xobb yfwj",
       },
     });
     await transport.sendMail({
@@ -58,7 +60,7 @@ export class EmailAdapter {
       secure: true,
       auth: {
         user: 'uladzislauzasko@gmail.com',
-        pass: 'ryko hyxu ntid aqrf',
+        pass: "umsq htqn xobb yfwj",
       },
     });
     await transport.sendMail({

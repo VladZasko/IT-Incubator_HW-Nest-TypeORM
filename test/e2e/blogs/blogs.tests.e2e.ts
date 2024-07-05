@@ -141,7 +141,7 @@ describe('/blog tests', () => {
       websiteUrl: incorrectBlogData.emptyWebsiteUrl,
     };
 
-    await blogTestMeneger.createBlog(data, HttpStatus.BAD_REQUEST, 2);
+    await blogTestMeneger.createBlog(data, HttpStatus.BAD_REQUEST, 1);
 
     await request(httpServer).get(RouterPaths.blogs).expect(HttpStatus.OK, {
       pagesCount: 0,
@@ -575,7 +575,7 @@ describe('/blog tests', () => {
       blog.createdEntity,
       data,
       HttpStatus.BAD_REQUEST,
-      2,
+      1,
     );
 
     await request(httpServer)

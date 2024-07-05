@@ -28,6 +28,7 @@ import { UpdateLikesModule } from '../comments/models/input/UpdateLikesModule';
 import { ObjectId } from 'mongodb';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
+import {IdParamModel} from "./models/input/IdParamModel";
 
 @Controller('posts')
 export class PostsController {
@@ -58,12 +59,12 @@ export class PostsController {
   async getCommentByPost(
     @Request() req,
     @Query() query: QueryCommentModule,
-    @Param('id') postId: string,
+    @Param() postId: IdParamModel,
   ) {
     const likeStatusData = req.userId;
 
     const post = await this.postsQueryRepository.getPostById(
-      postId,
+      postId.id,
       likeStatusData,
     );
     if (!post) {
@@ -73,7 +74,7 @@ export class PostsController {
 
     const commentByPost = await this.postsQueryRepository.getCommentByPostId(
       query,
-      postId,
+      postId.id,
       likeStatusData,
     );
     if (!commentByPost) {
@@ -85,11 +86,11 @@ export class PostsController {
 
   @UseGuards(AccessRolesGuard)
   @Get(':id')
-  async getPost(@Param('id') postId: string, @Request() req) {
+  async getPost(@Param() postId: IdParamModel, @Request() req) {
     const likeStatusData = req.userId;
 
     const post = await this.postsQueryRepository.getPostById(
-      postId,
+      postId.id,
       likeStatusData,
     );
     if (!post) {
@@ -122,9 +123,9 @@ export class PostsController {
   async createCommentByPost(
     @Request() req,
     @Body() inputModel: CreateCommentModel,
-    @Param('id') postId: string,
+    @Param() postId: IdParamModel,
   ) {
-    const post = await this.postsQueryRepository.getPostById(postId);
+    const post = await this.postsQueryRepository.getPostById(postId.id);
 
     if (!post) {
       throw new NotFoundException([
@@ -151,9 +152,9 @@ export class PostsController {
   @Put(':id')
   async updatePost(
     @Body() inputModel: UpdatePostModel,
-    @Param('id') postId: string,
+    @Param() postId: IdParamModel,
   ) {
-    const updatePost = await this.postsService.updatePost(postId, inputModel);
+    const updatePost = await this.postsService.updatePost(postId.id, inputModel);
     if (updatePost === false) {
       // Возвращаем HTTP статус 404 и сообщение
       throw new NotFoundException('Post not found');
@@ -208,8 +209,8 @@ export class PostsController {
   @UseGuards(BasicAuthGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deletePost(@Param('id') postId: string) {
-    const deletePost = await this.postsService.deletePostById(postId);
+  async deletePost(@Param() postId: IdParamModel) {
+    const deletePost = await this.postsService.deletePostById(postId.id);
     if (deletePost === false) {
       // Возвращаем HTTP статус 404 и сообщение
       throw new NotFoundException('Post not found');

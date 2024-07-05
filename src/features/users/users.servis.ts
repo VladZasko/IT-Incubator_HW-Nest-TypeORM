@@ -11,6 +11,7 @@ import { userDBMapper } from './mappers/mappers';
 import { LoginAuthUserModel } from '../auth/models/input/LoginAuthUserModel';
 import { ResultCode } from './utils/result-code';
 import { ERRORS_MESSAGES } from '../../utils/errors';
+import { v4 as uuidv4 } from 'uuid';
 
 export type Result<T> = {
   resultCode: ResultCode;
@@ -30,25 +31,25 @@ export class UsersService {
   async createUser(
     createData: CreateUserModel,
   ): Promise<Result<UsersViewModel | null>> {
-    const foundEmail = await this.usersQueryRepository.findByLoginOrEmail(
-      createData.email,
-    );
-    if (foundEmail) {
-      return {
-        resultCode: ResultCode.invalidEmail,
-        errorMessage: ERRORS_MESSAGES.USER_EMAIL,
-        data: null,
-      };
-    }
-    const foundLogin = await this.usersQueryRepository.findByLoginOrEmail(
-      createData.login,
-    );
-    if (foundLogin) {
-      return {
-        resultCode: ResultCode.invalidLogin,
-        errorMessage: ERRORS_MESSAGES.USER_LOGIN,
-        data: null,
-      };
+
+    const foundUser = await this.usersQueryRepository.findByLoginOrEmail({
+      login: createData.login,
+      email: createData.email,
+    });
+    if (foundUser) {
+      if (foundUser.email === createData.email) {
+        return {
+          resultCode: ResultCode.invalidEmail,
+          errorMessage: ERRORS_MESSAGES.USER_EMAIL,
+          data: null,
+        };
+      } else {
+        return {
+          resultCode: ResultCode.invalidLogin,
+          errorMessage: ERRORS_MESSAGES.USER_LOGIN,
+          data: null,
+        };
+      }
     }
 
     const passwordSalt = await bcrypt.genSalt(10);
@@ -64,6 +65,7 @@ export class UsersService {
         createdAt: new Date().toISOString(),
         passwordHash,
         passwordSalt,
+        id: uuidv4(),
       },
     };
     const createResult = await this.usersRepository.createUser(newUser);

@@ -6,27 +6,34 @@ import {
   RefreshTokensMetaDocument,
 } from '../../db/schemes/token.schemes';
 import { SecurityDevicesViewModel } from './models/output/securityDevicesViewModel';
-import { securityDevicesMapper } from './mappers/mappers';
+import {securityDevicesMapper, securityDevicesRepositoryMapper} from './mappers/mappers';
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
 
 @Injectable()
 export class SecurityDevicesQueryRepository {
   constructor(
-    @InjectModel(RefreshTokensMetaDBType.name)
-    private refreshTokenMetaModel: Model<RefreshTokensMetaDocument>,
+      @InjectDataSource()
+      protected dataSource: DataSource,
   ) {}
   async getAllDevices(
     userId: string,
   ): Promise<SecurityDevicesViewModel[] | null> {
-    const sessions = await this.refreshTokenMetaModel
-      .find({
-        userId: { $regex: userId },
-      })
-      .lean();
+    const query = `
+    SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
+        FROM public."RefreshTokenMeta"
+        WHERE "userId" = $1
+    `
+    const result = await this.dataSource.query(
+        query,[
+          userId
+        ]);
 
-    if (!sessions) {
+    if (!result[0]) {
       return null;
     }
 
-    return sessions.map(securityDevicesMapper);
+    return result.map(securityDevicesMapper);
   }
+
 }

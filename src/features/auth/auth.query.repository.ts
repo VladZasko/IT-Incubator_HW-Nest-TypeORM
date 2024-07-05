@@ -5,26 +5,51 @@ import { ObjectId } from 'mongodb';
 import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
 import { UsersAuthViewModel } from './models/output/UsersViewModel';
 import { userAuthMapper } from './mapper/mappers';
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
 @Injectable()
 export class AuthQueryRepository {
   constructor(
-    @InjectModel(UserDBType.name) private userModel: Model<UserDocument>,
+      @InjectDataSource()
+      protected dataSource: DataSource,
   ) {}
   async getUserById(id: string): Promise<UsersAuthViewModel | null> {
-    const user = await this.userModel.findOne({ _id: new ObjectId(id) });
+    // const user = await this.userModel.findOne({ _id: new ObjectId(id) });
+    //
+    // if (!user) {
+    //   return null;
+    // }
+    const query = `
+        SELECT "login", "email", "createdAt", "passwordHash", "passwordSalt", "id"
+            FROM public."Users"
+            WHERE "id" = $1
+        `
 
-    if (!user) {
-      return null;
-    }
-
-    return userAuthMapper(user);
+    const result = await this.dataSource.query(
+        query,[
+          id
+        ]);
+    return userAuthMapper(result[0]);
   }
   async findByLoginOrEmail(loginOrEmail: string) {
-    return this.userModel.findOne({
-      $or: [
-        { 'accountData.email': loginOrEmail },
-        { 'accountData.login': loginOrEmail },
-      ],
-    });
+      const query = `
+            SELECT u.*, ec.*, pc.*
+            FROM "Users" as u
+            LEFT JOIN "EmailConfirmation" as ec
+            ON u."id" = ec."userId"
+            LEFT JOIN "PasswordRecovery" as pc
+            ON u."id" = pc."userId"
+            WHERE "login" like $1 OR "email" like $1;
+            `
+
+      const findByLoginOrEmail = await this.dataSource.query(
+          query,[
+              loginOrEmail,
+          ]);
+
+      console.log(findByLoginOrEmail[0])
+
+      return findByLoginOrEmail[0];
+
   }
 }

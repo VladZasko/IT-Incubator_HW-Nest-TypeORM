@@ -5,24 +5,24 @@ import { UserDBType } from '../../../db/schemes/users.schemes';
 
 export const userAuthMapper = (userDb: any): UsersAuthViewModel => {
   return {
-    id: userDb._id.toString(),
-    login: userDb.accountData.login,
-    email: userDb.accountData.email,
-    createdAt: userDb.accountData.createdAt,
+    id: userDb.id,
+    login: userDb.login,
+    email: userDb.email,
+    createdAt: userDb.createdAt,
   };
 };
 
 export const userAuthDBMapper = (
-  userDb: WithId<UserDBType>,
+  userDb: any,
 ): UsersRepoViewModel => {
   return {
-    id: userDb._id.toString(),
+    id: userDb.id,
     accountData: {
-      login: userDb.accountData.login,
-      email: userDb.accountData.email,
-      createdAt: userDb.accountData.createdAt,
-      passwordHash: userDb.accountData.passwordHash,
-      passwordSalt: userDb.accountData.passwordSalt,
+      login: userDb.login,
+      email: userDb.email,
+      createdAt: userDb.createdAt,
+      passwordHash: userDb.passwordHash,
+      passwordSalt: userDb.passwordSalt,
     },
     /*    emailConfirmation: {
       confirmationCode: userDb.emailConfirmation!.confirmationCode,

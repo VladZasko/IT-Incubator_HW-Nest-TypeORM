@@ -21,7 +21,7 @@ export const ERRORS_MESSAGES = {
   AUTH_LOGIN_OR_EMAIL: { message: 'empty loginOrEmail', field: 'loginOrEmail' },
   AUTH_PASSWORD: { message: 'empty password', field: 'password' },
   AUTH_CODE: { message: 'Incorrect code!', field: 'code' },
-  AUTH_RECOVERY_CODE: { message: 'Incorrect code!', field: 'recoveryCode' },
+  AUTH_RECOVERY_CODE: { message: 'recoveryCode must be a UUID', field: 'recoveryCode' },
 
   FEEDBACKS_CONTENT: { message: 'Incorrect content!', field: 'content' },
 };
