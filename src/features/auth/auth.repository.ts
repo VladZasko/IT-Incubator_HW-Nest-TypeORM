@@ -1,141 +1,302 @@
 import { Injectable } from '@nestjs/common';
-import { ObjectId } from 'mongodb';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
-import {
-  RefreshTokensMetaDBType,
-  RefreshTokensMetaDocument,
-} from '../../db/schemes/token.schemes';
-import { CreateAuthUserPassModel } from './models/input/CreateAuthUserModel';
-import { UsersAuthViewModel } from './models/output/UsersViewModel';
-import { LoginOrEmailModel } from './models/input/LoginAuthUserModel';
+import {InjectDataSource} from '@nestjs/typeorm';
+import {DataSource} from 'typeorm';
+import {CreateAuthUserPassModel} from "./models/input/CreateAuthUserModel";
+import {UsersAuthViewModel} from "./models/output/UsersViewModel";
+import {LoginOrEmailModel} from "./models/input/LoginAuthUserModel";
+import {CreatePostBlogModel} from "./models/input/ConfirmCodeModel";
 
 @Injectable()
 export class AuthRepository {
-  constructor(
-    @InjectModel(UserDBType.name) private userModel: Model<UserDocument>,
-    @InjectModel(RefreshTokensMetaDBType.name)
-    private refreshTokenMetaModel: Model<RefreshTokensMetaDocument>,
-  ) {}
-  async createUser(
-    createData: CreateAuthUserPassModel,
-  ): Promise<UsersAuthViewModel> {
-    const user = await this.userModel.create({ ...createData });
+    constructor(
+        @InjectDataSource()
+        protected dataSource: DataSource,
+    ) {}
+    async createUser(createData: CreateAuthUserPassModel): Promise<UsersAuthViewModel> {
+        const query = `
+            INSERT INTO public."Users"(
+            "login", "email", "createdAt", "passwordHash", "passwordSalt", "id")
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING "login", "email", "createdAt", "id";
+            `
 
-    return {
-      createdAt: createData.accountData.createdAt,
-      email: createData.accountData.email,
-      login: createData.accountData.login,
-      id: user.id,
-    };
-  }
+        const user = await this.dataSource.query(
+            query,[
+                createData.accountData.login,
+                createData.accountData.email,
+                createData.accountData.createdAt,
+                createData.accountData.passwordHash,
+                createData.accountData.passwordSalt,
+                createData.accountData.id,
+            ]);
 
-  async updateConfirmation(_id: ObjectId) {
-    const result = await this.userModel.updateOne(
-      { _id },
-      { $set: { 'emailConfirmation.isConfirmed': true } },
-    );
-    return result.modifiedCount === 1;
-  }
+        const query2 = `
+            INSERT INTO public."EmailConfirmation"(
+            "userId", "confirmationCode", "expirationDate", "isConfirmed")
+            VALUES ($1, $2, $3, $4);`
 
-  async newConfirmationCode(
-    _id: ObjectId,
-    data: Date,
-    newConfirmationCode: string,
-  ) {
-    const result = await this.userModel.updateOne(
-      { _id },
-      {
-        $set: {
-          'emailConfirmation.confirmationCode': newConfirmationCode,
-          'emailConfirmation.expirationDate': data,
-        },
-      },
-    );
+        const emailConfirmation = await this.dataSource.query(
+            query2,[
+                createData.accountData.id,
+                createData.emailConfirmation.confirmationCode,
+                createData.emailConfirmation.expirationDate,
+                createData.emailConfirmation.isConfirmed
+            ]);
 
-    return result.modifiedCount === 1;
-  }
+        return user;
+    }
 
-  async updatePassword(user: any, salt: string, hash: string) {
-    const result = await this.userModel.updateOne(
-      { _id: new ObjectId(user.id) },
-      {
-        $set: {
-          'accountData.passwordHash': hash,
-          'accountData.passwordSalt': salt,
-        },
-        $unset: {
-          passwordRecovery: 1,
-        },
-      },
-    );
-    return result.modifiedCount === 1;
-  }
+    async updateConfirmation(id: string) {
+        const query = `
+            UPDATE public."EmailConfirmation"
+            SET  "isConfirmed" = true
+            WHERE "userId" = $1;
+            `
 
-  async passwordRecovery(
-    _id: ObjectId,
-    passwordRecoveryCode: string,
-    expirationDate: Date,
-  ) {
-    const result = await this.userModel.updateOne(
-      { _id },
-      {
-        $set: {
-          'passwordRecovery.recoveryCode': passwordRecoveryCode,
-          'passwordRecovery.expirationDate': expirationDate,
-        },
-      },
-    );
+        await this.dataSource.query(
+            query,[id]);
 
-    return result.modifiedCount === 1;
-  }
+        return true;
+    }
 
-  async deleteUserById(id: string): Promise<boolean> {
-    const foundUser = await this.userModel.deleteOne({ _id: new ObjectId(id) });
+    async newConfirmationCode(
+        id: string,
+        data: Date,
+        newConfirmationCode: string,
+    ) {
+        const query = `
+            UPDATE public."EmailConfirmation"
+            SET  "confirmationCode"= $2, "expirationDate" = $3
+            WHERE "userId" = $1
+            `
 
-    return !!foundUser.deletedCount;
-  }
+        await this.dataSource.query(
+            query,[id, newConfirmationCode, data]);
 
-  async createRefreshTokensMeta(refreshTokenDto: any) {
-    return this.refreshTokenMetaModel.insertMany(refreshTokenDto);
-  }
-  async updateRefreshTokensMeta(refreshTokenDto: any) {
-    return this.refreshTokenMetaModel.updateOne(
-      { deviceId: refreshTokenDto.deviceId },
-      {
-        $set: {
-          issuedAt: refreshTokenDto.issuedAt,
-          deviceId: refreshTokenDto.deviceId,
-          userId: refreshTokenDto.userId,
-          ip: refreshTokenDto.ip,
-          deviseName: refreshTokenDto.deviseName,
-        },
-      },
-    );
-  }
-  async deleteRefreshTokensMeta(deviceId: string) {
-    return this.refreshTokenMetaModel.deleteOne({ deviceId });
-  }
+        return true;
+    }
 
-  async findUserByConfirmationCode(emailConfirmationCode: string) {
-    return this.userModel.findOne({
-      'emailConfirmation.confirmationCode': emailConfirmationCode,
-    });
-  }
+    async updatePassword(user: any, salt: string, hash: string) {
+        const query = `
+            UPDATE public."Users"
+            SET "passwordHash"= $3, "passwordSalt"= $2
+            WHERE "id" = $1;
+            `
 
-  async findUserByRecoveryCode(recoveryCode: string) {
-    return this.userModel.findOne({
-      'passwordRecovery.recoveryCode': recoveryCode,
-    });
-  }
+        await this.dataSource.query(
+            query,[user.userId,salt,hash]);
 
-  async findByLoginOrEmail(createData: LoginOrEmailModel) {
-    return this.userModel.findOne({
-      $or: [
-        { 'accountData.email': createData.email },
-        { 'accountData.login': createData.login },
-      ],
-    });
-  }
+        return true;
+    }
+
+    async passwordRecovery(
+        id: string,
+        passwordRecoveryCode: string,
+        expirationDate: Date,
+    ) {
+        const query = `
+            INSERT INTO public."PasswordRecovery"(
+            "userId", "expirationDate", "recoveryCode")
+            VALUES ($1, $2, $3);
+            `
+
+        const user = await this.dataSource.query(
+            query,[
+                id,
+                expirationDate,
+                passwordRecoveryCode,
+            ]);
+
+        return true;
+    }
+
+    async deleteUserById(id: string): Promise<boolean> {
+        const query = `
+            DELETE FROM public."Users"
+            WHERE "id" = $1;
+            `
+
+        await this.dataSource.query(
+            query,[
+                id,
+            ]);
+
+        return true;
+
+    }
+
+    async createRefreshTokensMeta(refreshTokenDto: any) {
+        const query = `
+            INSERT INTO public."RefreshTokenMeta"(
+            "issuetAt", "deviceId", "ip", "deviceName", "userId", "id")
+            VALUES ($1, $2, $3, $4, $5, $6);
+            `
+
+        const user = await this.dataSource.query(
+            query,[
+                refreshTokenDto.issuedAt,
+                refreshTokenDto.deviceId,
+                refreshTokenDto.ip,
+                refreshTokenDto.deviseName,
+                refreshTokenDto.userId,
+                refreshTokenDto.id
+            ]);
+
+        return true;
+    }
+    async updateRefreshTokensMeta(refreshTokenDto: any) {
+        const query = `
+            UPDATE public."RefreshTokenMeta"
+            SET "issuetAt"= $2
+            WHERE "deviceId"= $1;
+            `
+
+        await this.dataSource.query(
+            query,[
+                refreshTokenDto.deviceId,
+                refreshTokenDto.issuedAt
+            ]);
+
+        return true;
+    }
+    async deleteRefreshTokensMeta(deviceId: string) {
+        const query = `
+            DELETE FROM public."RefreshTokenMeta"
+            WHERE "deviceId" = $1;
+            `
+
+        await this.dataSource.query(
+            query,[
+                deviceId,
+            ]);
+
+        return true;
+    }
+
+    async findUserByConfirmationCode(emailConfirmationCode: string) {
+
+        const query = `
+            SELECT *
+            FROM public."EmailConfirmation"
+            WHERE "confirmationCode" = $1
+            `
+
+        const result = await this.dataSource.query(
+            query,[
+                emailConfirmationCode,
+            ]);
+
+        return result[0];
+
+    }
+
+    async findUserByRecoveryCode(recoveryCode: string) {
+        const query = `
+            SELECT *
+            FROM public."PasswordRecovery"
+            WHERE "recoveryCode" = $1
+            `
+
+        const result = await this.dataSource.query(
+            query,[
+                recoveryCode,
+            ]);
+
+        return result[0];
+    }
+
+    async findByLoginOrEmail(createData: LoginOrEmailModel) {
+        const query = `
+            SELECT u.*, ec.*
+            FROM "Users" as u
+            LEFT JOIN "EmailConfirmation" as ec
+            ON u."id" = ec."userId"
+            WHERE "login" like $1 OR "email" like $2;
+            `
+
+        const findByLoginOrEmail = await this.dataSource.query(
+            query,[
+                createData.login,
+                createData.email,
+            ]);
+
+        console.log(findByLoginOrEmail[0])
+
+        return findByLoginOrEmail[0];
+
+    }
+
+    async findByEmail(email: string) {
+        const query = `
+            SELECT *
+            FROM "Users" as u
+            WHERE "email" like $1 ;
+            `
+
+        const findByEmail = await this.dataSource.query(
+            query,[email]);
+
+        console.log(findByEmail[0])
+
+        return findByEmail[0];
+    }
+
+    // async updateUser(user: User): Promise<boolean> {
+    //     await this.usersRepository.save(user);
+    //
+    //     return true;
+    // }
+    //
+    // async getUserById(id: string): Promise<User> {
+    //     return this.usersRepository.findOneBy({
+    //         id: id,
+    //     });
+    // }
+    //
+    // async getAllUser() {
+    //     const user = await this.usersRepository
+    //         .createQueryBuilder('user')
+    //         .leftJoin('user.post', 'post')
+    //         .select('user')
+    //         .addSelect('post')
+    //         .where((qb) => {
+    //             const subQb = qb
+    //                 .subQuery()
+    //                 .select('id')
+    //                 .from(Post, 'post1')
+    //                 .where('post1.userId = user.id')
+    //                 .orderBy('post1.createdAt')
+    //                 .limit(1)
+    //                 .getQuery();
+    //             return 'post.id =' + subQb;
+    //         })
+    //         .leftJoin('user.likes', 'like')
+    //         .addSelect((qb) => {
+    //             return qb
+    //                 .select('COUNT(1)')
+    //                 .from(Like, 'like')
+    //                 .where('like.postId = post.id')
+    //                 .groupBy('like.postId');
+    //         }, 'like')
+    //         .getRawMany();
+    //
+    //     //return user.map((u) => mapper(u));
+    //     return this.usersRepository
+    //         .createQueryBuilder('user')
+    //         .leftJoinAndSelect(
+    //             'user.post',
+    //             'post',
+    //             'post.id IN (SELECT l.postId FROM "like" l WHERE l.postId = post.id)',
+    //         )
+    //         .leftJoinAndSelect('post.likes', 'like')
+    //         .addSelect('COUNT(like.id)', 'likeCount')
+    //         .groupBy('user.id, post.id')
+    //         .getMany();
+    // }
+    //
+    // async findByEmail(email: string): Promise<User> {
+    //     return this.usersRepository.findOneBy({
+    //         email: email,
+    //     });
+    // }
 }

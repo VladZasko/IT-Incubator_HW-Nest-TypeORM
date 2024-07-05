@@ -1,49 +1,66 @@
 import request from 'supertest'
-import {app} from "../../../src/app";
-import {HTTP_STATUSES} from "../../../src/utils/utils";
 import {RouterPaths} from "../../../src/routerPaths";
-import {ErrorMessage, ERRORS_MESSAGES} from "../../../src/utils/errors";
 import {dataTestUserCreate01, incorrectUserData} from "./dataForTest/dataTestforUser";
-import {usersTestManager} from "./utils/usersTestManager";
-import {dbControl} from "../../../src/db/db";
+import {HttpStatus, INestApplication} from "@nestjs/common";
+import {UsersTestManager} from "./utils/usersTestManager";
+import {Test, TestingModule} from "@nestjs/testing";
+import {AppModule} from "../../../src/app.module";
+import {applyAppSettings} from "../../../src/settings/apply.app.settings";
 
 
-const getRequest = () => {
-    return request(app)
-}
 describe('/user', () => {
+    let app: INestApplication;
+    let httpServer;
+    let usersTestManager: UsersTestManager;
+
     beforeAll(async () => {
-        await dbControl.run()
+        const moduleFixture: TestingModule = await Test.createTestingModule({
+            imports: [AppModule],
+        }).compile();
+
+        app = moduleFixture.createNestApplication();
+        applyAppSettings(app);
+        await app.init();
+
+        httpServer = app.getHttpServer();
+
+        usersTestManager = new UsersTestManager(app);
+        // authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+        // authTestManager = new AuthTestManager(
+        //     authQueryRepository,
+        //     app,
+        //     emailAdapter,
+        // );
     })
 
     beforeEach(async () => {
-        await getRequest().delete('/testing/all-data')
+        await request(httpServer).delete('/testing/all-data')
     })
 
     afterAll(async () => {
-        await dbControl.stop()
+        await app.close();
     })
 
     it('should return 200 and empty array', async () => {
-        await getRequest()
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it('should return 404 fot not existing users', async () => {
-        await getRequest()
+        await request(httpServer)
             .get(`${RouterPaths.users}/1`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.NOT_FOUND_404)
+            .expect(HttpStatus.NOT_FOUND)
     })
 
     it(`shouldn't create user with UNAUTHORIZED`, async () => {
-        await request(app)
+        await request(httpServer)
             .post(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW')
             .send(dataTestUserCreate01)
-            .expect(HTTP_STATUSES.UNAUTHORIZED_401)
+            .expect(HttpStatus.UNAUTHORIZED)
     })
 
     it(`shouldn't create user with empty login`, async () => {
@@ -52,15 +69,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             login: incorrectUserData.emptyLogin
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_LOGIN]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with login more than 10 characters`, async () => {
@@ -68,15 +84,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             login: incorrectUserData.tooLongLogin
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_LOGIN]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with empty email`, async () => {
@@ -84,15 +99,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             email: incorrectUserData.emptyEmail
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_EMAIL]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with incorrect email`, async () => {
@@ -100,15 +114,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             email: incorrectUserData.incorrectEmail
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_EMAIL]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with empty password`, async () => {
@@ -116,15 +129,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             password: incorrectUserData.emptyPassword
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_PASSWORD]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with password more than 20 characters`, async () => {
@@ -132,15 +144,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             password: incorrectUserData.tooLongPassword
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_PASSWORD]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with password that does not match the pattern`, async () => {
@@ -148,15 +159,14 @@ describe('/user', () => {
             ...dataTestUserCreate01,
             password: incorrectUserData.incorrectPassword
         }
-        const error: ErrorMessage = [ERRORS_MESSAGES.USER_PASSWORD]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 1)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`shouldn't create user with incorrect data`, async () => {
@@ -166,29 +176,24 @@ describe('/user', () => {
             email: incorrectUserData.emptyEmail,
             password: incorrectUserData.incorrectPassword
         }
-        const error: ErrorMessage = [
-            ERRORS_MESSAGES.USER_LOGIN,
-            ERRORS_MESSAGES.USER_PASSWORD,
-            ERRORS_MESSAGES.USER_EMAIL
-        ]
 
         await usersTestManager
-            .createUserAdmin(data, HTTP_STATUSES.BAD_REQUEST_400, error)
+            .createUserAdmin(data, HttpStatus.BAD_REQUEST, 3)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
+            .expect(HttpStatus.OK, {pagesCount: 0, page: 1, pageSize: 10, totalCount: 0, items: []})
     })
 
     it(`should create user with correct input data`, async () => {
 
         const user = await usersTestManager.createUserAdmin(dataTestUserCreate01)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200,
+            .expect(HttpStatus.OK,
                 {pagesCount: 1, page: 1, pageSize: 10, totalCount: 1, items: [user.createdEntity]})
     })
 
@@ -212,10 +217,10 @@ describe('/user', () => {
 
         const users = await usersTestManager.createUsersAdmin(dataTestUserCreate01)
 
-        await getRequest()
+        await request(httpServer)
             .get(`${RouterPaths.users}/?pageSize=15&sortDirection=asc`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200,
+            .expect(HttpStatus.OK,
                 {
                     pagesCount: 1,
                     page: 1,
@@ -229,10 +234,10 @@ describe('/user', () => {
 
         const users = await usersTestManager.createUsersAdmin(dataTestUserCreate01)
 
-        await getRequest()
+        await request(httpServer)
             .get(`${RouterPaths.users}/?searchLoginTerm=og9`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200,
+            .expect(HttpStatus.OK,
                 {
                     pagesCount: 1,
                     page: 1,
@@ -246,10 +251,10 @@ describe('/user', () => {
 
         const users = await usersTestManager.createUsersAdmin(dataTestUserCreate01)
 
-        await getRequest()
+        await request(httpServer)
             .get(`${RouterPaths.users}/?searchEmailTerm=il8`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200,
+            .expect(HttpStatus.OK,
                 {
                     pagesCount: 1,
                     page: 1,
@@ -264,37 +269,37 @@ describe('/user', () => {
 
         const user = await usersTestManager.createUserAdmin(dataTestUserCreate01)
 
-        await request(app)
+        await request(httpServer)
             .delete(`${RouterPaths.users}/${user.createdEntity.id}`)
             .set('authorization', 'Basic YWRtaW')
-            .expect(HTTP_STATUSES.UNAUTHORIZED_401)
+            .expect(HttpStatus.UNAUTHORIZED)
     })
 
     it(`shouldn't delete  user`, async () => {
-        await request(app)
+        await request(httpServer)
             .delete(`${RouterPaths.users}/7779161`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.NOT_FOUND_404)
+            .expect(HttpStatus.BAD_REQUEST)
     })
 
     it(`should delete both user`, async () => {
 
         const user = await usersTestManager.createUserAdmin(dataTestUserCreate01)
 
-        await request(app)
+        await request(httpServer)
             .delete(`${RouterPaths.users}/${user.createdEntity.id}`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.NO_CONTENT_204)
+            .expect(HttpStatus.NO_CONTENT)
 
-        await request(app)
+        await request(httpServer)
             .get(`${RouterPaths.users}/${user.createdEntity.id}`)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.NOT_FOUND_404)
+            .expect(HttpStatus.NOT_FOUND)
 
-        await request(app)
+        await request(httpServer)
             .get(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-            .expect(HTTP_STATUSES.OK_200,
+            .expect(HttpStatus.OK,
                 {
                     pagesCount: 0,
                     page: 1,

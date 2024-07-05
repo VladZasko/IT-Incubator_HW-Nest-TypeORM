@@ -3,24 +3,24 @@ import { RefreshTokensMetaDBType } from '../../../db/schemes/token.schemes';
 import { SecurityDevicesViewModel } from '../models/output/securityDevicesViewModel';
 
 export const securityDevicesMapper = (
-  securityDevicesDb: WithId<RefreshTokensMetaDBType>,
+  securityDevicesDb: any,
 ): SecurityDevicesViewModel => {
   return {
     ip: securityDevicesDb.ip,
-    title: securityDevicesDb.deviseName,
-    lastActiveDate: securityDevicesDb.issuedAt,
+    title: securityDevicesDb.deviceName,
+    lastActiveDate: securityDevicesDb.issuetAt,
     deviceId: securityDevicesDb.deviceId,
   };
 };
 
 export const securityDevicesRepositoryMapper = (
-  securityDevicesDb: WithId<RefreshTokensMetaDBType>,
+  securityDevicesDb: any
 ): RefreshTokensMetaDBType => {
   return {
     ip: securityDevicesDb.ip,
-    issuedAt: securityDevicesDb.issuedAt,
+    issuedAt: securityDevicesDb.issuetAt,
     deviceId: securityDevicesDb.deviceId,
-    deviseName: securityDevicesDb.deviseName,
+    deviseName: securityDevicesDb.deviceName,
     userId: securityDevicesDb.userId,
   };
 };

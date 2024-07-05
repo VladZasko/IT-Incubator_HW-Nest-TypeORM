@@ -1,6 +1,4 @@
 import request from 'supertest';
-import { app } from '../../../src/app';
-import { HTTP_STATUSES } from '../../../src/utils/utils';
 import { RouterPaths } from '../../../src/routerPaths';
 import {
   dataTestFeedbackCreate01,
@@ -8,38 +6,73 @@ import {
   tooLongContent,
   tooShortContent,
 } from './dataForTest/dataTestforFeedbacks';
-import { ErrorMessage, ERRORS_MESSAGES } from '../../../src/utils/errors';
-import { feedbacksTestManager } from './utils/feedbacksTestManager';
-import { usersTestManager } from '../users/utils/usersTestManager';
+import { FeedbacksTestManager } from './utils/feedbacksTestManager';
 import {
   dataTestUserCreate01,
   dataTestUserCreate02,
 } from '../users/dataForTest/dataTestforUser';
-import { dbControl } from '../../../src/db/db';
 import { AuthTestManager } from '../auth/utils/authTestManager';
 import {
   dataTestUserAuth,
   dataTestUserAuth2,
 } from '../auth/dataForTest/dataTestforAuth';
-import { postsTestManager } from '../posts/utils/postsTestManager';
 import { dataTestPostsCreate01 } from '../posts/dataForTest/dataTestforPost';
-import { blogTestMeneger } from '../blogs/utils/blogTestMeneger';
 import { dataTestBlogCreate01 } from '../blogs/dataForTest/dataTestforBlog';
+import {HttpStatus, INestApplication} from "@nestjs/common";
+import {BlogTestMeneger} from "../blogs/utils/blogTestMeneger";
+import {Test, TestingModule} from "@nestjs/testing";
+import {AppModule} from "../../../src/app.module";
+import {applyAppSettings} from "../../../src/settings/apply.app.settings";
+import {UsersTestManager} from "../users/utils/usersTestManager";
+import {EmailAdapter} from "../../../src/features/auth/adapters/email-adapter";
+import {AuthQueryRepository} from "../../../src/features/auth/auth.query.repository";
+import {PostsTestManager} from "../posts/utils/postsTestManager";
 
-const getRequest = () => {
-  return request(app);
-};
+
 describe('/feedback tests', () => {
-  beforeAll(async () => {
-    await dbControl.run();
-  });
+    let app: INestApplication;
+    let httpServer;
+    let blogTestMeneger: BlogTestMeneger;
+    let feedbacksTestManager: FeedbacksTestManager;
+    let usersTestManager: UsersTestManager;
+    let emailAdapter: EmailAdapter;
+    let authQueryRepository: AuthQueryRepository;
+    let authTestManager: AuthTestManager;
+    let postsTestManager: PostsTestManager;
+
+
+
+    beforeAll(async () => {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+          imports: [AppModule],
+      }).compile();
+
+      app = moduleFixture.createNestApplication();
+      applyAppSettings(app);
+      await app.init();
+
+      httpServer = app.getHttpServer();
+
+      feedbacksTestManager = new FeedbacksTestManager(app);
+      blogTestMeneger = new BlogTestMeneger(app);
+      usersTestManager = new UsersTestManager(app);
+      postsTestManager = new PostsTestManager(app);
+      emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
+      authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+      authTestManager = new AuthTestManager(
+          authQueryRepository,
+          app,
+          emailAdapter,
+      );
+
+    });
 
   beforeEach(async () => {
-    await getRequest().delete('/testing/all-data');
+    await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
-    await dbControl.stop();
+      await app.close();
   });
 
   it('should return 200 and empty array', async () => {
@@ -49,9 +82,9 @@ describe('/feedback tests', () => {
       blogId: blog.createdEntity.id,
     });
 
-    await getRequest()
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,
@@ -61,9 +94,9 @@ describe('/feedback tests', () => {
   });
 
   it('should return 404 fot not existing comment', async () => {
-    await getRequest()
+    await request(httpServer)
       .get(`${RouterPaths.feedbacks}/1`)
-      .expect(HTTP_STATUSES.NOT_FOUND_404);
+      .expect(HttpStatus.NOT_FOUND);
   });
 
   it('should return comment with id', async () => {
@@ -75,7 +108,7 @@ describe('/feedback tests', () => {
       blogId: blog.createdEntity.id,
     });
 
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
@@ -83,9 +116,9 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.feedbacks}/${comment.createdEntity.id}`)
-      .expect(HTTP_STATUSES.OK_200, comment.createdEntity);
+      .expect(HttpStatus.OK, comment.createdEntity);
   });
 
   it(`shouldn't create comment with incorrect JWT token`, async () => {
@@ -99,12 +132,12 @@ describe('/feedback tests', () => {
       dataTestFeedbackCreate01,
       post,
       `Bearer YWRtaW46cXdlcnR5`,
-      HTTP_STATUSES.UNAUTHORIZED_401,
+        HttpStatus.UNAUTHORIZED,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,
@@ -121,18 +154,18 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
       post,
       `Basic ${token.createdEntity.accessToken}`,
-      HTTP_STATUSES.UNAUTHORIZED_401,
+        HttpStatus.UNAUTHORIZED,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,
@@ -149,21 +182,19 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
-
-    const error: ErrorMessage = [ERRORS_MESSAGES.FEEDBACKS_CONTENT];
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       tooShortContent,
       post,
       token.createdEntity.accessToken,
-      HTTP_STATUSES.BAD_REQUEST_400,
-      error,
+        HttpStatus.BAD_REQUEST,
+      1,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,
@@ -180,21 +211,19 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
-
-    const error: ErrorMessage = [ERRORS_MESSAGES.FEEDBACKS_CONTENT];
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       tooLongContent,
       post,
       token.createdEntity.accessToken,
-      HTTP_STATUSES.BAD_REQUEST_400,
-      error,
+        HttpStatus.BAD_REQUEST,
+      1,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,
@@ -211,7 +240,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const result = await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
@@ -220,9 +249,9 @@ describe('/feedback tests', () => {
     );
 
     const newComment = result.createdEntity;
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -239,7 +268,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
       dataTestFeedbackCreate01,
@@ -247,9 +276,9 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments?pageSize=15`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 15,
@@ -266,7 +295,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
       dataTestFeedbackCreate01,
@@ -274,11 +303,11 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(
         `${RouterPaths.posts}/${post.createdEntity.id}/comments?pageSize=3&pageNumber=3`,
       )
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 4,
         page: 3,
         pageSize: 3,
@@ -295,7 +324,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
       dataTestFeedbackCreate01,
@@ -303,12 +332,12 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await getRequest()
+    await request(httpServer)
       .get(
         `${RouterPaths.posts}/${post.createdEntity.id}/comments?pageSize=15&sortDirection=asc`,
       )
       .set('authorization', 'Basic YWRtaW46cXdlcnR5')
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 15,
@@ -325,7 +354,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
@@ -337,12 +366,12 @@ describe('/feedback tests', () => {
       dataTestFeedbackUpdate,
       comment.createdEntity,
       `Bearer YWRtaW`,
-      HTTP_STATUSES.UNAUTHORIZED_401,
+        HttpStatus.UNAUTHORIZED,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -359,7 +388,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -371,13 +400,13 @@ describe('/feedback tests', () => {
       tooShortContent,
       comment.createdEntity,
       token.createdEntity.accessToken,
-      HTTP_STATUSES.BAD_REQUEST_400,
-      [ERRORS_MESSAGES.FEEDBACKS_CONTENT],
+        HttpStatus.BAD_REQUEST,
+      1,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -394,7 +423,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -406,13 +435,13 @@ describe('/feedback tests', () => {
       tooLongContent,
       comment.createdEntity,
       token.createdEntity.accessToken,
-      HTTP_STATUSES.BAD_REQUEST_400,
-      [ERRORS_MESSAGES.FEEDBACKS_CONTENT],
+        HttpStatus.BAD_REQUEST,
+      1,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -430,8 +459,8 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const tokenUser1 = await AuthTestManager.createToken(dataTestUserAuth);
-    const tokenUser2 = await AuthTestManager.createToken(dataTestUserAuth2);
+    const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
+    const tokenUser2 = await authTestManager.createToken(dataTestUserAuth2);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -443,12 +472,12 @@ describe('/feedback tests', () => {
       dataTestFeedbackUpdate,
       comment.createdEntity,
       tokenUser2.createdEntity.accessToken,
-      HTTP_STATUSES.FORBIDDEN_403,
+        HttpStatus.FORBIDDEN,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -465,7 +494,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -479,9 +508,9 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -503,7 +532,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -514,12 +543,12 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       comment.createdEntity,
       `Basic ${token.createdEntity.accessToken}`,
-      HTTP_STATUSES.UNAUTHORIZED_401,
+        HttpStatus.UNAUTHORIZED,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -536,7 +565,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -547,12 +576,12 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       '123',
       token.createdEntity.accessToken,
-      HTTP_STATUSES.NOT_FOUND_404,
+        HttpStatus.NOT_FOUND,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -570,8 +599,8 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const tokenUser1 = await AuthTestManager.createToken(dataTestUserAuth);
-    const tokenUser2 = await AuthTestManager.createToken(dataTestUserAuth2);
+    const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
+    const tokenUser2 = await authTestManager.createToken(dataTestUserAuth2);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -582,12 +611,12 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       comment.createdEntity,
       tokenUser2.createdEntity.accessToken,
-      HTTP_STATUSES.FORBIDDEN_403,
+        HttpStatus.FORBIDDEN,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 1,
         page: 1,
         pageSize: 10,
@@ -604,7 +633,7 @@ describe('/feedback tests', () => {
       ...dataTestPostsCreate01,
       blogId: blog.createdEntity.id,
     });
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
       dataTestFeedbackUpdate,
@@ -617,9 +646,9 @@ describe('/feedback tests', () => {
       token.createdEntity.accessToken,
     );
 
-    await request(app)
+    await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
-      .expect(HTTP_STATUSES.OK_200, {
+      .expect(HttpStatus.OK, {
         pagesCount: 0,
         page: 1,
         pageSize: 10,

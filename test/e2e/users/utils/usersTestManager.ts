@@ -1,58 +1,55 @@
-import request from "supertest";
-import {HTTP_STATUSES, HttpStatusType} from "../../../../src/utils/utils";
-import {RouterPaths} from "../../../../src/routerPaths";
-import {app} from "../../../../src/app";
-import {ErrorMessage} from "../../../../src/utils/errors";
-import {CreateUserModel} from "../../../../src/features/users/models/input/CreateUserModel";
-import {errors} from "../../../utils/error";
+import request from 'supertest';
+import { RouterPaths } from '../../../../src/routerPaths';
+import { CreateUserModel } from '../../../../src/features/users/models/input/CreateUserModel';
+import { HttpStatus, INestApplication } from '@nestjs/common';
+import { HttpStatusType } from '../../../utils/utils';
 
-
-
-export const usersTestManager = {
-    async createUserAdmin(data: CreateUserModel,
-                          expectedStatusCode: HttpStatusType = HTTP_STATUSES.CREATED_201,
-                          expectedErrorsMessages?: ErrorMessage) {
-
-        const response = await request(app)
+export class UsersTestManager {
+    constructor(protected readonly app: INestApplication) {}
+    async createUserAdmin(
+        data: CreateUserModel,
+        expectedStatusCode: HttpStatusType = HttpStatus.CREATED,
+        expectedErrorsMessagesLength?: number,
+    ) {
+        const response = await request(this.app.getHttpServer())
             .post(RouterPaths.users)
             .set('authorization', 'Basic YWRtaW46cXdlcnR5')
             .send(data)
-            .expect(expectedStatusCode)
+            .expect(expectedStatusCode);
 
-        if (expectedStatusCode === HTTP_STATUSES.BAD_REQUEST_400) {
-            await errors.errors(response.body, expectedErrorsMessages)
+        if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
+            expect(response.body.errorsMessages.length).toBe(
+                expectedErrorsMessagesLength,
+            );
         }
 
         let createdEntity;
-        if (expectedStatusCode === HTTP_STATUSES.CREATED_201) {
+        if (expectedStatusCode === HttpStatus.CREATED) {
             createdEntity = response.body;
             expect(createdEntity).toEqual({
                 ...createdEntity,
                 id: expect.any(String),
                 login: data.login,
-                email: data.email
-            })
+                email: data.email,
+            });
         }
-        return {response: response, createdEntity: createdEntity};
-    },
+        return { response: response, createdEntity: createdEntity };
+    }
 
     async createUsersAdmin(data: CreateUserModel) {
-
-        const users = []
+        const users: any = [];
 
         for (let i = 0; i < 12; i++) {
             const dataUsers = {
                 login: `${data.login}${i}`,
                 email: `newemail${i}@gmail.com`,
-                password: data.password
-            }
-            const result = await usersTestManager.createUserAdmin(dataUsers)
+                password: data.password,
+            };
+            const result = await this.createUserAdmin(dataUsers);
 
-            users.unshift(result.createdEntity)
+            users.unshift(result.createdEntity);
         }
 
         return users;
-    },
-
+    }
 }
-

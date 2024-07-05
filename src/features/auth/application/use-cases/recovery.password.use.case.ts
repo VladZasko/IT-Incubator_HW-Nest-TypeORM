@@ -1,13 +1,14 @@
-import { AuthRepository } from '../../auth.repository';
+import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { EmailAdapter } from '../../adapters/email-adapter';
 import { LoginOrEmailModel } from '../../models/input/LoginAuthUserModel';
 import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {AuthRepository} from "../../auth.repository";
 
 export class RecoveryPasswordCommand {
-  constructor(public email: LoginOrEmailModel) {}
+  constructor(public email: string) {}
 }
 @CommandHandler(RecoveryPasswordCommand)
 export class RecoveryPasswordUseCase
@@ -19,7 +20,7 @@ export class RecoveryPasswordUseCase
   ) {}
 
   async execute(command: RecoveryPasswordCommand): Promise<boolean> {
-    const user = await this.authRepository.findByLoginOrEmail(command.email);
+    const user = await this.authRepository.findByEmail(command.email);
     if (!user) return true;
 
     const passwordRecoveryCode = uuidv4();
@@ -28,13 +29,13 @@ export class RecoveryPasswordUseCase
     });
 
     const result = await this.authRepository.passwordRecovery(
-      user!._id,
+      user!.id,
       passwordRecoveryCode,
       expirationDate,
     );
 
     const sendRecoveryCodeDto: EmailAdapterDto = {
-      email: user.accountData.email,
+      email: user.email,
       recoveryCode: passwordRecoveryCode,
     };
     try {

@@ -1,7 +1,8 @@
-import { AuthRepository } from '../../auth.repository';
+import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { AuthService } from '../auth.service';
 import * as bcrypt from 'bcrypt';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {AuthRepository} from "../../auth.repository";
 
 export class NewPasswordCommand {
   constructor(public data: any) {}
@@ -18,9 +19,9 @@ export class NewPasswordUseCase implements ICommandHandler<NewPasswordCommand> {
       command.data.recoveryCode,
     );
     if (!user) return false;
-    if (user.passwordRecovery!.recoveryCode !== command.data.recoveryCode)
+    if (user.recoveryCode !== command.data.recoveryCode)
       return false;
-    if (user.passwordRecovery!.expirationDate < new Date()) return false;
+    if (user.expirationDate < new Date()) return false;
 
     const passwordSalt = await bcrypt.genSalt(10);
     const passwordHash = await this.authService._generateHash(

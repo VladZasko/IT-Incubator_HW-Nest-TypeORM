@@ -1,9 +1,10 @@
-import { AuthRepository } from '../../auth.repository';
+import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { EmailAdapter } from '../../adapters/email-adapter';
 import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {AuthRepository} from "../../auth.repository";
 
 export class ResendingConfirmEmailCommand {
   constructor(public email: string) {}
@@ -22,7 +23,7 @@ export class ResendingConfirmEmailUseCase
       email: command.email,
     });
     if (!user) return false;
-    if (user.emailConfirmation.isConfirmed) return false;
+    if (user.isConfirmed) return false;
 
     const newConfirmationCode = uuidv4();
     const newExpirationDate = add(new Date(), {
@@ -30,13 +31,13 @@ export class ResendingConfirmEmailUseCase
     });
 
     const result = await this.authRepository.newConfirmationCode(
-      user._id,
+      user.id,
       newExpirationDate,
       newConfirmationCode,
     );
 
     const resendingConfirmEmailDto: EmailAdapterDto = {
-      email: user.accountData.email,
+      email: user.email,
       newCode: newConfirmationCode,
     };
     try {

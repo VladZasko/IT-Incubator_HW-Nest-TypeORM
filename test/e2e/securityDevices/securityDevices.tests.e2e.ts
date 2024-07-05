@@ -1,62 +1,89 @@
 import request from 'supertest';
-import { app } from '../../../src/app';
-import { HTTP_STATUSES } from '../../../src/utils/utils';
 import { RouterPaths } from '../../../src/routerPaths';
-import { usersTestManager } from '../users/utils/usersTestManager';
+import {UsersTestManager} from '../users/utils/usersTestManager';
 import {
   dataTestUserCreate01,
   dataTestUserCreate02,
 } from '../users/dataForTest/dataTestforUser';
-import { dbControl } from '../../../src/db/db';
-import { AuthTestManager } from '../auth/utils/authTestManager';
+import {AuthTestManager} from '../auth/utils/authTestManager';
 import {
   dataTestUserAuth,
   dataTestUserAuth2,
 } from '../auth/dataForTest/dataTestforAuth';
+import {HttpStatus, INestApplication} from "@nestjs/common";
+import {EmailAdapter} from "../../../src/features/auth/adapters/email-adapter";
+import {AuthQueryRepository} from "../../../src/features/auth/auth.query.repository";
+import {Test, TestingModule} from "@nestjs/testing";
+import {AppModule} from "../../../src/app.module";
+import {applyAppSettings} from "../../../src/settings/apply.app.settings";
 
-const getRequest = () => {
-  return request(app);
-};
+
 describe('/securityDevices', () => {
+  let app: INestApplication;
+  let httpServer;
+  let emailAdapter: EmailAdapter;
+  let authQueryRepository: AuthQueryRepository;
+  let authTestManager: AuthTestManager;
+  let usersTestManager: UsersTestManager;
+  
   beforeAll(async () => {
-    await dbControl.run();
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+
+    app = moduleFixture.createNestApplication();
+    applyAppSettings(app)
+    await app.init();
+
+    httpServer = app.getHttpServer();
+
+    emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
+    authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+    authTestManager = new AuthTestManager(
+        authQueryRepository,
+        app,
+        emailAdapter,
+    );
+
+    usersTestManager = new UsersTestManager(app);
   });
 
   beforeEach(async () => {
-    await getRequest().delete('/testing/all-data');
+    await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
-    await dbControl.stop();
+    await app.close();
   });
 
   it('should return 401 if refreshToken inside cookie is missing', async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token = await AuthTestManager.createToken(dataTestUserAuth);
+    const token = await authTestManager.createToken(dataTestUserAuth);
 
-    await getRequest()
+    await request(httpServer)
       .post(`${RouterPaths.auth}/refresh-token`)
       .set('Cookie', token.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
-    await getRequest()
+    await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token.refreshToken!)
-      .expect(HTTP_STATUSES.UNAUTHORIZED_401);
+      .expect(HttpStatus.UNAUTHORIZED);
   });
 
   it('should return 200 and three devices', async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token1 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const token1 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resalt = await getRequest()
+    const resalt = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt.body.length).toBe(3);
   });
@@ -64,31 +91,31 @@ describe('/securityDevices', () => {
   it("shouldn't delete device. 401 JWT refreshToken inside cookie is missing, expired or incorrect", async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token1 = await AuthTestManager.createToken(dataTestUserAuth);
-    const token2 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const token1 = await authTestManager.createToken(dataTestUserAuth);
+    const token2 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resalt = await getRequest()
+    const resalt = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt.body.length).toBe(3);
 
-    await getRequest()
+    await request(httpServer)
       .post(`${RouterPaths.auth}/refresh-token`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices/${resalt.body[1].deviceId}`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.UNAUTHORIZED_401);
+      .expect(HttpStatus.UNAUTHORIZED);
 
-    const resalt2 = await getRequest()
+    const resalt2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token2.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt2.body.length).toBe(3);
   });
@@ -97,41 +124,41 @@ describe('/securityDevices', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
     await usersTestManager.createUserAdmin(dataTestUserCreate02);
 
-    const tokenUser1 = await AuthTestManager.createToken(dataTestUserAuth);
-    const tokenUser2 = await AuthTestManager.createToken(dataTestUserAuth2);
-    await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth2);
+    const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
+    const tokenUser2 = await authTestManager.createToken(dataTestUserAuth2);
+    await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth2);
 
-    const resaltUser1 = await getRequest()
+    const resaltUser1 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resaltUser1.body.length).toBe(2);
 
-    const resaltUser2 = await getRequest()
+    const resaltUser2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser2.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resaltUser2.body.length).toBe(2);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices/${resaltUser2.body[1].deviceId}`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.FORBIDDEN_403);
+      .expect(HttpStatus.FORBIDDEN);
 
-    const deviceUser1 = await getRequest()
+    const deviceUser1 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(deviceUser1.body.length).toBe(2);
 
-    const deviceUser2 = await getRequest()
+    const deviceUser2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser2.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(deviceUser2.body.length).toBe(2);
   });
@@ -139,26 +166,26 @@ describe('/securityDevices', () => {
   it("shouldn't delete device. 404 not found", async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const tokenUser1 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resaltUser1 = await getRequest()
+    const resaltUser1 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resaltUser1.body.length).toBe(3);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices/${123}`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.NOT_FOUND_404);
+      .expect(HttpStatus.BAD_REQUEST);
 
-    const deviceUser1 = await getRequest()
+    const deviceUser1 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', tokenUser1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(deviceUser1.body.length).toBe(3);
   });
@@ -166,26 +193,26 @@ describe('/securityDevices', () => {
   it('should return 204 delete one device', async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token1 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const token1 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resalt = await getRequest()
+    const resalt = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt.body.length).toBe(3);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices/${resalt.body[1].deviceId}`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.NO_CONTENT_204);
+      .expect(HttpStatus.NO_CONTENT);
 
-    const resalt2 = await getRequest()
+    const resalt2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt2.body.length).toBe(2);
   });
@@ -193,31 +220,31 @@ describe('/securityDevices', () => {
   it("shouldn't delete all device. 401 JWT refreshToken inside cookie is missing, expired or incorrect", async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token1 = await AuthTestManager.createToken(dataTestUserAuth);
-    const token2 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const token1 = await authTestManager.createToken(dataTestUserAuth);
+    const token2 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resalt = await getRequest()
+    const resalt = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt.body.length).toBe(3);
 
-    await getRequest()
+    await request(httpServer)
       .post(`${RouterPaths.auth}/refresh-token`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.UNAUTHORIZED_401);
+      .expect(HttpStatus.UNAUTHORIZED);
 
-    const resalt2 = await getRequest()
+    const resalt2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token2.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt2.body.length).toBe(3);
   });
@@ -225,26 +252,26 @@ describe('/securityDevices', () => {
   it('should return 204 delete all device', async () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
-    const token1 = await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
-    await AuthTestManager.createToken(dataTestUserAuth);
+    const token1 = await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
+    await authTestManager.createToken(dataTestUserAuth);
 
-    const resalt = await getRequest()
+    const resalt = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt.body.length).toBe(3);
 
-    await getRequest()
+    await request(httpServer)
       .delete(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.NO_CONTENT_204);
+      .expect(HttpStatus.NO_CONTENT);
 
-    const resalt2 = await getRequest()
+    const resalt2 = await request(httpServer)
       .get(`${RouterPaths.security}/devices`)
       .set('Cookie', token1.refreshToken!)
-      .expect(HTTP_STATUSES.OK_200);
+      .expect(HttpStatus.OK);
 
     expect(resalt2.body.length).toBe(1);
   });

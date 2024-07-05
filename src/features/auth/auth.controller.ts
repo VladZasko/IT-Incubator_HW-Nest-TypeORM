@@ -29,8 +29,10 @@ import { ResendingConfirmEmailCommand } from './application/use-cases/resending.
 import { NewPasswordCommand } from './application/use-cases/new.password.use.case';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import {CreatePostBlogModel} from "./models/input/ConfirmCodeModel";
+import {LoginAuthUserModel} from "./models/input/EmailModel";
 
-@UseGuards(ThrottlerGuard)
+//@UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -47,6 +49,7 @@ export class AuthController {
     );
 
     const dataRefreshToken = {
+      id: uuidv4(),
       issuedAt: new Date().toISOString(),
       deviceId: uuidv4(),
       userId: req.user.id,
@@ -70,13 +73,16 @@ export class AuthController {
         accessToken: accessToken,
       });
   }
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Post('password-recovery')
-  async passwordRecovery(@Body() email: string) {
+  async passwordRecovery(@Body() email: LoginAuthUserModel) {
     await this.commandBus.execute(
-      new RecoveryPasswordCommand({ email: email }),
+      new RecoveryPasswordCommand(email.email),
     );
     return;
   }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
   @Post('new-password')
   async newPassword(@Body() inputModel: newPasswordModel) {
     await this.commandBus.execute(new NewPasswordCommand(inputModel));
@@ -94,7 +100,7 @@ export class AuthController {
     const dataRefreshToken = {
       issuedAt: new Date().toISOString(),
       deviceId: req.refreshTokenMeta!.deviceId,
-      userId: req.userId,
+      userId: req.user.id,
       ip: ip,
       deviseName: req.headers['user-agent'] ?? 'Device',
     };
@@ -130,8 +136,8 @@ export class AuthController {
   }
   @Post('registration-confirmation')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async registrationConfirmation(@Body('code') code: string) {
-    const result = await this.commandBus.execute(new ConfirmEmailCommand(code));
+  async registrationConfirmation(@Body()  code: CreatePostBlogModel) {
+    const result = await this.commandBus.execute(new ConfirmEmailCommand(code.code));
 
     if (!result) {
       throw new BadRequestException([

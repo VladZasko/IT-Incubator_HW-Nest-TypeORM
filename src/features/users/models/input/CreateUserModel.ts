@@ -12,5 +12,6 @@ export class CreateUserModel {
   email: string;
 
   @Length(6, 20)
+  @Matches(`^[a-zA-Z0-9_-]*$`)
   password: string;
 }

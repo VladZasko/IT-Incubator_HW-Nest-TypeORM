@@ -1,4 +1,3 @@
-import { AuthRepository } from '../../auth.repository';
 import { EmailAdapter } from '../../adapters/email-adapter';
 import { CreateUserModel } from '../../../users/models/input/CreateUserModel';
 import { UsersViewModel } from '../../../users/models/output/UsersViewModel';
@@ -11,6 +10,7 @@ import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { Result } from '../../utils/result.type';
 import { AuthService } from '../auth.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import {AuthRepository} from "../../auth.repository";
 
 export class CreateUserCommand {
   constructor(public createData: CreateUserModel) {}
@@ -31,7 +31,7 @@ export class CreateUserUseCase implements ICommandHandler<CreateUserCommand> {
       email: command.createData.email,
     });
     if (foundUser) {
-      if (foundUser.accountData.email === command.createData.email) {
+      if (foundUser.email === command.createData.email) {
         return {
           resultCode: ResultCode.invalidEmail,
           errorMessage: ERRORS_MESSAGES.USER_EMAIL,
@@ -59,6 +59,7 @@ export class CreateUserUseCase implements ICommandHandler<CreateUserCommand> {
         createdAt: new Date().toISOString(),
         passwordHash,
         passwordSalt,
+        id: uuidv4(),
       },
       emailConfirmation: {
         confirmationCode: uuidv4(),

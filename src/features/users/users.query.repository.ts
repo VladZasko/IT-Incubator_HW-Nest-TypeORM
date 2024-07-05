@@ -9,76 +9,107 @@ import {
   UsersViewModelGetAllUsers,
 } from './models/output/UsersViewModel';
 import { userMapper } from './mappers/mappers';
+import {LoginOrEmailModel} from "../auth/models/input/LoginAuthUserModel";
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
 @Injectable()
 export class UsersQueryRepository {
   constructor(
-    @InjectModel(UserDBType.name) private userModel: Model<UserDocument>,
+      @InjectDataSource()
+      protected dataSource: DataSource,
   ) {}
   async getAllUsers(
     sortData: QueryUserModel,
   ): Promise<UsersViewModelGetAllUsers> {
-    const searchLoginTerm = sortData.searchLoginTerm ?? null;
-    const searchEmailTerm = sortData.searchEmailTerm ?? null;
+    const searchLoginTerm = sortData.searchLoginTerm ?? '';
+    const searchEmailTerm = sortData.searchEmailTerm ?? '';
     const sortBy = sortData.sortBy ?? 'createdAt';
-    const sortDirection = sortData.sortDirection ?? 'desc';
+    const sortDirection = sortData.sortDirection ?? 'DESC';
     const pageNumber = sortData.pageNumber ?? 1;
     const pageSize = sortData.pageSize ?? 10;
 
-    let filter = {};
+    let filter = `WHERE "login" LIKE '%%' AND "email" LIKE '%%'`;
 
     if (searchLoginTerm) {
-      filter = {
-        'accountData.login': { $regex: searchLoginTerm, $options: 'i' },
-      };
+      filter = `WHERE LOWER("login") LIKE '%${searchLoginTerm.toLowerCase()}%'`;
     }
     if (searchEmailTerm) {
-      filter = {
-        'accountData.email': { $regex: searchEmailTerm, $options: 'i' },
-      };
+      filter = `WHERE LOWER("email") LIKE '%${searchEmailTerm.toLowerCase()}%'`;
     }
     if (searchLoginTerm && searchEmailTerm) {
-      filter = {
-        $or: [
-          { 'accountData.email': { $regex: searchEmailTerm, $options: 'i' } },
-          { 'accountData.login': { $regex: searchLoginTerm, $options: 'i' } },
-        ],
-      };
+      filter = `WHERE LOWER("login") LIKE '%${searchLoginTerm.toLowerCase()}%' OR LOWER("email") LIKE '%${searchEmailTerm.toLowerCase()}%'`;
     }
 
-    const users = await this.userModel
-      .find(filter)
-      .sort([[`accountData.` + sortBy, sortDirection]])
-      .skip((pageNumber - 1) * +pageSize)
-      .limit(+pageSize)
-      .lean();
+    const query = `
+            SELECT "login", "email", "createdAt", "passwordHash", "passwordSalt", "id"
+            FROM public."Users"
+            ${filter}
+            ORDER BY "${sortBy}"  ${sortDirection}
+            LIMIT ${pageSize}
+            OFFSET ${(pageNumber - 1) * +pageSize}
+            `
 
-    const totalCount: number = await this.userModel.countDocuments(filter);
+    const result = await this.dataSource.query(
+        query);
 
-    const pagesCount: number = Math.ceil(totalCount / +pageSize);
+
+    // const users = await this.userModel
+    //   .find(filter)
+    //   .sort([[`accountData.` + sortBy, sortDirection]])
+    //   .skip((pageNumber - 1) * +pageSize)
+    //   .limit(+pageSize)
+    //   .lean();
+
+    const totalCount: number = await this.dataSource.query(
+        `
+            SELECT COUNT(*) FROM "Users"
+            ${filter}
+            `);
+
+    const pagesCount: number = Math.ceil(+totalCount[0].count / +pageSize);
 
     return {
       pagesCount,
       page: +pageNumber,
       pageSize: +pageSize,
-      totalCount,
-      items: users.map(userMapper),
+      totalCount: +totalCount[0].count,
+      items: result.map(userMapper),
     };
   }
-  async getUserById(id: string): Promise<UsersViewModel | null> {
-    const user = await this.userModel.findOne({ _id: new ObjectId(id) });
+  // async getUserById(id: string): Promise<UsersViewModel | null> {
+  //   const user = await this.userModel.findOne({ _id: new ObjectId(id) });
+  //
+  //   if (!user) {
+  //     return null;
+  //   }
+  //
+  //   return userMapper(user);
+  // }
+  // async findByLoginOrEmail(loginOrEmail: string) {
+  //   return this.userModel.findOne({
+  //     $or: [
+  //       { 'accountData.email': loginOrEmail },
+  //       { 'accountData.login': loginOrEmail },
+  //     ],
+  //   });
+  // }
 
-    if (!user) {
-      return null;
-    }
+  async findByLoginOrEmail(createData: any) {
+    const query = `
+            SELECT *
+            FROM "Users" as u
+            WHERE "login" like $1 OR "email" like $2;
+            `
 
-    return userMapper(user);
-  }
-  async findByLoginOrEmail(loginOrEmail: string) {
-    return this.userModel.findOne({
-      $or: [
-        { 'accountData.email': loginOrEmail },
-        { 'accountData.login': loginOrEmail },
-      ],
-    });
+    const findByLoginOrEmail = await this.dataSource.query(
+        query,[
+          createData.login,
+          createData.email,
+        ]);
+
+    console.log(findByLoginOrEmail[0])
+
+    return findByLoginOrEmail[0];
+
   }
 }
