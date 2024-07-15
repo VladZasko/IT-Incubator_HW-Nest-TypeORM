@@ -40,12 +40,11 @@ export class PostsController {
     protected authQueryRepository: AuthQueryRepository,
   ) {}
 
-  //@UseGuards(AccessRolesGuard)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessRolesGuard)
   @Get()
   async getPosts(@Query() query: QueryPostsModel, @Request() req) {
-    //const likeStatusData = req.userId;
-    const likeStatusData = req.user.userId;
+    const likeStatusData = req.userId;
+    //const likeStatusData2 = req.user.userId;
     const posts = await this.postsQueryRepository.getAllPosts(
       query,
       likeStatusData,
@@ -87,11 +86,10 @@ export class PostsController {
   //   return commentByPost;
   // }
 
-  //@UseGuards(AccessRolesGuard)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AccessRolesGuard)
   @Get(':id')
   async getPost(@Param('id') postId: string, @Request() req) {
-    const likeStatusData = req.user.userId;
+    const likeStatusData = req.userId;
 
     if (!uuidValidate(postId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);

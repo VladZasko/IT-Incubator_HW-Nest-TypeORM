@@ -30,6 +30,8 @@ export class AccessRolesGuard implements CanActivate {
         token,
         this.configService.get('auth.JWT_SECRET'),
       );
+
+      console.log(decoded)
       request.userId = decoded.sub; // Добавить декодированные данные из токена в объект запроса
       return true;
     } catch (error) {
