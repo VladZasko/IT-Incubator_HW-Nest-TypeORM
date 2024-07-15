@@ -1,15 +1,19 @@
 import { Injectable, Scope } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { BlogDBType, BlogDocument } from '../../db/schemes/blogs.schemes';
+import { Model } from 'mongoose';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
 import { blogMapper } from './mappers/mapper';
 import { BlogsViewModel } from './models/output/BlogsViewModel';
 import { ObjectId } from 'mongodb';
+import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
 import { postQueryMapper } from '../posts/mappers/mappers';
 import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
 import {InjectDataSource} from "@nestjs/typeorm";
 import {DataSource} from "typeorm";
 
 @Injectable({ scope: Scope.REQUEST })
-export class BlogsQueryRepository {
+export class BlogsSaQueryRepository {
   constructor(
       @InjectDataSource()
       protected dataSource: DataSource,
@@ -78,8 +82,8 @@ export class BlogsQueryRepository {
 
     const posts = await this.dataSource.query(
         query,[
-          blogId,
-        ]);
+            blogId,
+            ]);
 
     const totalCount: number = await this.dataSource.query(
         `
@@ -96,20 +100,14 @@ export class BlogsQueryRepository {
       totalCount: +totalCount[0].count,
       items: posts.map(postQueryMapper),
     };
-
   }
-  async getBlogById(id: string): Promise<BlogsViewModel | null> {
-    const query = `
-            SELECT *
-            FROM public."Blogs"
-            WHERE "id" = $1
-            `
-
-    const result = await this.dataSource.query(
-        query, [
-          id,
-        ]);
-
-    return result[0];
-  }
+  // async getBlogById(id: string): Promise<BlogsViewModel | null> {
+  //   const blog = await this.blogModel.findOne({ _id: new ObjectId(id) });
+  //
+  //   if (!blog) {
+  //     return null;
+  //   }
+  //
+  //   return blogMapper(blog);
+  // }
 }

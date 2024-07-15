@@ -15,163 +15,354 @@ import {
 } from '../../db/schemes/comments.schemes';
 import { CreateCommentModelRepo } from '../comments/models/input/CreateCommentModel';
 import { CommentViewModel } from '../comments/models/output/CommentViewModel';
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
+import {BlogDBType} from "../../db/schemes/blogs.schemes";
+import {CreateBlogReposModel} from "../blogs/models/input/CreateBlogModel";
+import {BlogsViewModel} from "../blogs/models/output/BlogsViewModel";
 @Injectable()
 export class PostsRepository {
   constructor(
-    @InjectModel(PostDBType.name) private postModel: Model<PostDocument>,
-    @InjectModel(CommentDBType.name)
-    private commentModel: Model<CommentDocument>,
-  ) {}
+      @InjectDataSource()
+      protected dataSource: DataSource,
+  ) {
+  }
 
-  async updateLike(
-    id: string,
-    likesData: NewestLikesType,
-    likeStatusData: LikesStatus,
-  ): Promise<boolean> {
-    const post = await this.postModel.findById({ _id: new ObjectId(id) });
+  // async updateLike(
+  //   id: string,
+  //   likesData: NewestLikesType,
+  //   likeStatusData: LikesStatus,
+  // ): Promise<boolean> {
+  //   const post = await this.postModel.findById({ _id: new ObjectId(id) });
+  //
+  //   const isLiked = post!.likesInfo.likes.some(
+  //     (obj) => obj.userId === likesData.userId,
+  //   );
+  //   const isDisliked = post!.likesInfo.dislikes.some(
+  //     (obj) => obj.userId === likesData.userId,
+  //   );
+  //
+  //   if (likeStatusData === LikesStatus.Like) {
+  //     if (isLiked) {
+  //       return true;
+  //     } else {
+  //       await this.postModel.updateOne(
+  //         { _id: new ObjectId(id) },
+  //         {
+  //           $push: {
+  //             'likesInfo.likes': likesData,
+  //           },
+  //         },
+  //       );
+  //       if (isDisliked) {
+  //         await this.postModel.updateOne(
+  //           { _id: new ObjectId(id) },
+  //           {
+  //             $pull: {
+  //               'likesInfo.dislikes': { userId: likesData.userId },
+  //             },
+  //           },
+  //         );
+  //       }
+  //     }
+  //   } else if (likeStatusData === LikesStatus.Dislike) {
+  //     if (isDisliked) {
+  //       return true;
+  //     } else {
+  //       await this.postModel.updateOne(
+  //         { _id: new ObjectId(id) },
+  //         {
+  //           $push: {
+  //             'likesInfo.dislikes': likesData,
+  //           },
+  //         },
+  //       );
+  //       if (isLiked) {
+  //         await this.postModel.updateOne(
+  //           { _id: new ObjectId(id) },
+  //           {
+  //             $pull: {
+  //               'likesInfo.likes': { userId: likesData.userId },
+  //             },
+  //           },
+  //         );
+  //       }
+  //     }
+  //   } else if (likeStatusData === LikesStatus.None) {
+  //     if (isDisliked) {
+  //       await this.postModel.updateOne(
+  //         { _id: new ObjectId(id) },
+  //         {
+  //           $pull: {
+  //             'likesInfo.dislikes': { userId: likesData.userId },
+  //           },
+  //         },
+  //       );
+  //     } else if (isLiked) {
+  //       await this.postModel.updateOne(
+  //         { _id: new ObjectId(id) },
+  //         {
+  //           $pull: {
+  //             'likesInfo.likes': { userId: likesData.userId },
+  //           },
+  //         },
+  //       );
+  //     } else {
+  //       return true;
+  //     }
+  //   } else {
+  //     return false;
+  //   }
+  //
+  //   await post!.save();
+  //
+  //   return true;
+  // }
 
-    const isLiked = post!.likesInfo.likes.some(
-      (obj) => obj.userId === likesData.userId,
-    );
-    const isDisliked = post!.likesInfo.dislikes.some(
-      (obj) => obj.userId === likesData.userId,
-    );
+    async getLikeOrDislike(postId: string, userId: string): Promise<any> {
+        const query = `
+            SELECT *
+            FROM public."Likes"
+            WHERE "postId" = $1 AND "userId" = $2
+            `
 
-    if (likeStatusData === LikesStatus.Like) {
-      if (isLiked) {
-        return true;
-      } else {
-        await this.postModel.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $push: {
-              'likesInfo.likes': likesData,
-            },
-          },
-        );
-        if (isDisliked) {
-          await this.postModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $pull: {
-                'likesInfo.dislikes': { userId: likesData.userId },
-              },
-            },
-          );
-        }
-      }
-    } else if (likeStatusData === LikesStatus.Dislike) {
-      if (isDisliked) {
-        return true;
-      } else {
-        await this.postModel.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $push: {
-              'likesInfo.dislikes': likesData,
-            },
-          },
-        );
-        if (isLiked) {
-          await this.postModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $pull: {
-                'likesInfo.likes': { userId: likesData.userId },
-              },
-            },
-          );
-        }
-      }
-    } else if (likeStatusData === LikesStatus.None) {
-      if (isDisliked) {
-        await this.postModel.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $pull: {
-              'likesInfo.dislikes': { userId: likesData.userId },
-            },
-          },
-        );
-      } else if (isLiked) {
-        await this.postModel.updateOne(
-          { _id: new ObjectId(id) },
-          {
-            $pull: {
-              'likesInfo.likes': { userId: likesData.userId },
-            },
-          },
-        );
-      } else {
-        return true;
-      }
-    } else {
-      return false;
+        const result = await this.dataSource.query(
+            query,[
+                postId,
+                userId
+            ]);
+
+        if(!result[0]) return null
+
+        return result[0];
     }
 
-    await post!.save();
+    async updateLikeOrDislike(likesData: any): Promise<any> {
+        const query = `
+            UPDATE public."Likes" as l
+            SET status=$3
+            WHERE l."userId" = $1 AND l."postId" = $2;
+            `
 
-    return true;
-  }
-  async createPost(createPostDto: any): Promise<PostsViewModel> {
-    const createdPost = new this.postModel(createPostDto);
-    await createdPost.save();
-    return {
-      id: createdPost.id,
-      title: createPostDto.title,
-      shortDescription: createPostDto.shortDescription,
-      content: createPostDto.content,
-      blogId: createPostDto.blogId,
-      blogName: createPostDto.blogName,
-      createdAt: createPostDto.createdAt,
-      extendedLikesInfo: {
-        likesCount: createPostDto.likesInfo.likes.length,
-        dislikesCount: createPostDto.likesInfo.likes.length,
-        myStatus: LikesStatus.None,
-        newestLikes: [],
-      },
-    };
-  }
-  async updatePost(
-    id: string,
-    updatePostDto: UpdatePostModel,
-  ): Promise<boolean> {
-    const foundPost = await this.postModel.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          title: updatePostDto.title,
-          shortDescription: updatePostDto.shortDescription,
-          content: updatePostDto.content,
-          blogId: updatePostDto.blogId,
-        },
-      },
-    );
-    return !!foundPost.matchedCount;
-  }
+        await this.dataSource.query(
+            query,[
+                likesData.userId,
+                likesData.postId,
+                likesData.newLikeStatus,
+            ]);
+
+        return true;
+    }
+
+    async addLikeOrDislike(likesData: any): Promise<any> {
+        const query = `
+            INSERT INTO public."Likes"(
+            id, "userId", "postId", status, "createdAt")
+            VALUES ($1, $2, $3, $4, $5);
+            `
+
+        await this.dataSource.query(
+            query,[
+                likesData.id,
+                likesData.userId,
+                likesData.postId,
+                likesData.newLikeStatus,
+                likesData.createdAt,
+            ]);
+
+        return true;
+    }
+
+    async getLike(postId: string, userId: string): Promise<any> {
+        const query = `
+            SELECT *
+            FROM public."LikesForPosts"
+            WHERE "postId" = $1 AND "userId" = $2
+            `
+
+        const result = await this.dataSource.query(
+            query,[
+                postId,
+                userId
+            ]);
+
+        return result[0];
+    }
+
+    async getDislike(postId: string, userId: string): Promise<any> {
+        const query = `
+            SELECT *
+            FROM public."DislikesForPosts"
+            WHERE "postId" = $1 AND "userId" = $2
+            `
+
+        const result = await this.dataSource.query(
+            query,[
+                postId,
+                userId
+            ]);
+
+        return result[0];
+    }
+
+    async deleteLike(userId: string, postId: string): Promise<boolean> {
+        const query = `
+            DELETE FROM public."LikesForPosts"
+            WHERE "postId" = $1 AND "userId" = $2 RETURNING id;
+            `
+        const result =await this.dataSource.query(
+            query,[
+                postId,
+                userId
+            ]);
+
+        if(result[1] === 0){
+            return false
+        }
+
+        return true;
+    }
+
+    async deleteDislike(userId: string, postId: string): Promise<boolean> {
+        const query = `
+            DELETE FROM public."DislikesForPosts"
+            WHERE "postId" = $1 AND "userId" = $2 RETURNING id;
+            `
+        const result =await this.dataSource.query(
+            query,[
+                postId,
+                userId
+            ]);
+
+        if(result[1] === 0){
+            return false
+        }
+
+        return true;
+    }
+
+    async addLike(likesData: any): Promise<any> {
+        const query = `
+            INSERT INTO public."LikesForPosts"(
+            id, "postId", "userId", "createdAt")
+            VALUES ($1, $2, $3, $4);
+            `
+
+        await this.dataSource.query(
+            query,[
+                likesData.id,
+                likesData.postId,
+                likesData.userId,
+                likesData.addedAt,
+            ]);
+
+        return true;
+    }
+
+    async addDislike(likesData: any): Promise<any> {
+        const query = `
+            INSERT INTO public."DislikesForPosts"(
+            id, "postId", "userId", "createdAt")
+            VALUES ($1, $2, $3, $4);
+            `
+
+        await this.dataSource.query(
+            query,[
+                likesData.id,
+                likesData.postId,
+                likesData.userId,
+                likesData.addedAt,
+            ]);
+
+        return true;
+    }
+  // async createPost(createPostDto: any): Promise<PostsViewModel> {
+  //   const createdPost = new this.postModel(createPostDto);
+  //   await createdPost.save();
+  //   return {
+  //     id: createdPost.id,
+  //     title: createPostDto.title,
+  //     shortDescription: createPostDto.shortDescription,
+  //     content: createPostDto.content,
+  //     blogId: createPostDto.blogId,
+  //     blogName: createPostDto.blogName,
+  //     createdAt: createPostDto.createdAt,
+  //     extendedLikesInfo: {
+  //       likesCount: createPostDto.likesInfo.likes.length,
+  //       dislikesCount: createPostDto.likesInfo.likes.length,
+  //       myStatus: LikesStatus.None,
+  //       newestLikes: [],
+  //     },
+  //   };
+  // }
+  // async updatePost(
+  //   id: string,
+  //   updatePostDto: UpdatePostModel,
+  // ): Promise<boolean> {
+  //   const foundPost = await this.postModel.updateOne(
+  //     { _id: new ObjectId(id) },
+  //     {
+  //       $set: {
+  //         title: updatePostDto.title,
+  //         shortDescription: updatePostDto.shortDescription,
+  //         content: updatePostDto.content,
+  //         blogId: updatePostDto.blogId,
+  //       },
+  //     },
+  //   );
+  //   return !!foundPost.matchedCount;
+  //
+  // }
   async createCommentByPost(
-    createData: CreateCommentModelRepo,
-  ): Promise<CommentViewModel> {
-    const comment = await this.commentModel.create({ ...createData });
+      createData: CreateCommentModelRepo,
+  ): Promise<any> {
+    const query = `
+            INSERT INTO public."Comments"(
+            id, content, "createdAt", "postId", "userId")
+            VALUES ($1, $2, $3, $4, $5);
+            `
+
+    await this.dataSource.query(
+        query, [
+          createData.id,
+          createData.content,
+          createData.createdAt,
+          createData.postId,
+          createData.userId,
+        ]);
+
+    const query2 = `
+        SELECT c.*, u."login" as "userLogin"
+            FROM public."Comments" as c
+            LEFT JOIN "Users" as u
+            ON c."userId" = u."id"
+            WHERE c."id" = $1
+            `
+
+    const result = await this.dataSource.query(
+        query2, [
+          createData.id,
+        ]);
 
     return {
-      id: comment.id,
-      content: createData.content,
+      id: result[0].id,
+      content: result[0].content,
       commentatorInfo: {
-        userId: createData.commentatorInfo.userId,
-        userLogin: createData.commentatorInfo.userLogin,
+        userId: result[0].userId,
+        userLogin: result[0].userLogin,
       },
-      createdAt: createData.createdAt,
+      createdAt: result[0].createdAt,
       likesInfo: {
-        likesCount: createData.likesInfo.likes.length,
-        dislikesCount: createData.likesInfo.dislikes.length,
+        likesCount: 0,
+        dislikesCount: 0,
         myStatus: LikesStatus.None,
       },
     };
-  }
-  async deletePost(id: string): Promise<boolean> {
-    const foundPost = await this.postModel.deleteOne({ _id: new ObjectId(id) });
 
-    return !!foundPost.deletedCount;
+    // async deletePost(id: string): Promise<boolean> {
+    //   const foundPost = await this.postModel.deleteOne({ _id: new ObjectId(id) });
+    //
+    //   return !!foundPost.deletedCount;
+    // }
   }
 }

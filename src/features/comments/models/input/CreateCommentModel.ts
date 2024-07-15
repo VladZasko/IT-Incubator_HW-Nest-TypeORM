@@ -18,11 +18,11 @@ export type CreateCommentServiceModel = {
 };
 
 export type CreateCommentModelRepo = {
+  id: string
   content: string;
-  commentatorInfo: commentatorInfoModel;
   createdAt: string;
-  likesInfo: likesInfoModel;
   postId: string;
+  userId: string;
 };
 export class commentatorInfoModel {
   constructor(

@@ -24,6 +24,7 @@ export type CreateBlogReposModel = {
   /**
    * blog name, description, websiteUrl
    */
+  id: string;
   name: string;
   description: string;
   websiteUrl: string;

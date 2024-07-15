@@ -20,7 +20,7 @@ export class RefreshAndAccessTokenUseCase {
     const payload = { sub: userId };
     return this.jwtService.sign(payload, {
       //expiresIn: this.configService.get('auth.ACCESS_TOKEN_TIME'),
-      expiresIn: '10s',
+      expiresIn: '1000s',
     });
   }
 
@@ -32,7 +32,7 @@ export class RefreshAndAccessTokenUseCase {
     };
     return this.jwtService.sign(payload, {
       //expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
-      expiresIn: '20s',
+      expiresIn: '2000s',
     });
   }
 

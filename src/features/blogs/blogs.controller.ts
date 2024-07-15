@@ -22,6 +22,7 @@ import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { ObjectId } from 'mongodb';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
+import {validate as uuidValidate} from "uuid";
 
 @Controller({ path: 'blogs', scope: Scope.REQUEST })
 export class BlogsController {
@@ -54,11 +55,11 @@ export class BlogsController {
   ) {
     const likeStatusData = req.userId;
 
-    if (!ObjectId.isValid(blogId)) {
+    if (!uuidValidate(blogId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const foundBlog = await this.blogsQueryRepository.getBlogById(blogId);
+    const foundBlog = await this.blogsQueryRepository.getPostsByBlogId(query, blogId);
 
     if (!foundBlog) {
       // Возвращаем HTTP статус 404 и сообщение
@@ -73,83 +74,15 @@ export class BlogsController {
   }
   @Get(':id')
   async getBlog(@Param('id') blogId: string) {
-    if (!ObjectId.isValid(blogId)) {
+    if (!uuidValidate(blogId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
-
     const blog = await this.blogsQueryRepository.getBlogById(blogId);
 
     if (!blog) {
-      // Возвращаем HTTP статус 404 и сообщение
       throw new NotFoundException('Post not found');
     }
     return blog;
   }
 
-  @UseGuards(BasicAuthGuard)
-  @Post()
-  async createBlog(@Body() inputModel: CreateBlogModel) {
-    const newBlog = await this.blogsService.createBlog(inputModel);
-
-    return newBlog;
-  }
-
-  @UseGuards(BasicAuthGuard)
-  @Post(':id/posts')
-  async createPostByBlog(
-    @Body() createDTO: CreatePostBlogModel,
-    @Param('id') blogId: string,
-  ) {
-    if (!ObjectId.isValid(blogId)) {
-      throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
-    }
-
-    const newPostId = await this.blogsService.createPostBlog(blogId, createDTO);
-
-    if (newPostId === null) {
-      // Возвращаем HTTP статус 404 и сообщение
-      throw new NotFoundException('Post not found');
-    }
-
-    return newPostId;
-  }
-
-  @UseGuards(BasicAuthGuard)
-  @Put(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async updateBlog(
-    @Body() inputModel: CreateBlogModel,
-    @Param('id') blogId: string,
-  ) {
-    if (!ObjectId.isValid(blogId)) {
-      throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
-    }
-
-    const updateBlog = await this.blogsService.updateBlog(blogId, inputModel);
-
-    if (updateBlog === false) {
-      // Возвращаем HTTP статус 404 и сообщение
-      throw new NotFoundException('Post not found');
-    }
-
-    return updateBlog;
-  }
-
-  @UseGuards(BasicAuthGuard)
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteBlog(@Param('id') blogId: string) {
-    if (!ObjectId.isValid(blogId)) {
-      throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
-    }
-
-    const deleteBlog = await this.blogsService.deleteBlogById(blogId);
-
-    if (deleteBlog === false) {
-      // Возвращаем HTTP статус 404 и сообщение
-      throw new NotFoundException('Post not found');
-    }
-
-    return deleteBlog;
-  }
 }

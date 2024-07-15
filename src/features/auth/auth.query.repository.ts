@@ -14,11 +14,6 @@ export class AuthQueryRepository {
       protected dataSource: DataSource,
   ) {}
   async getUserById(id: string): Promise<UsersAuthViewModel | null> {
-    // const user = await this.userModel.findOne({ _id: new ObjectId(id) });
-    //
-    // if (!user) {
-    //   return null;
-    // }
     const query = `
         SELECT "login", "email", "createdAt", "passwordHash", "passwordSalt", "id"
             FROM public."Users"
@@ -29,6 +24,9 @@ export class AuthQueryRepository {
         query,[
           id
         ]);
+
+    if(!result[0]) return null
+
     return userAuthMapper(result[0]);
   }
   async findByLoginOrEmail(loginOrEmail: string) {

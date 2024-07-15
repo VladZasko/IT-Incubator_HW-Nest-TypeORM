@@ -1,31 +1,22 @@
-import { LikesStatus, PostsViewModel } from '../models/output/PostsViewModel';
-import { PostDBType } from '../../../db/schemes/posts.schemes';
-import { WithId } from 'mongodb';
+import {LikesStatus, PostsViewModel} from '../models/output/PostsViewModel';
+import {PostDBType} from '../../../db/schemes/posts.schemes';
+import {WithId} from 'mongodb';
 
 export const postQueryMapper = (
-  postDb: WithId<PostDBType>,
-  Id?: string,
+  postDb: any,
+  likes?: any,
+  // Id?: string,
 ): PostsViewModel => {
-  const isLiked = postDb!.likesInfo.likes.some((obj) => obj.userId === Id);
-  const isDisliked = postDb!.likesInfo.dislikes.some(
-    (obj) => obj.userId === Id,
-  );
 
-  let likeStatus = LikesStatus.None;
+  const threeNewestUsers = likes
+      .filter((x) => x.postId === postDb.id)
+      .sort((a, b) => a.createdAt < b.createdAt ? 1 : -1)
+      .map(x => ({addedAt: x.createdAt, userId: x.userId, login: x.login}))
 
-  if (isLiked) {
-    likeStatus = LikesStatus.Like;
-  }
-  if (isDisliked) {
-    likeStatus = LikesStatus.Dislike;
-  }
-
-  postDb.likesInfo.likes.reverse();
-
-  const threeNewestUsers = postDb.likesInfo.likes.slice(0, 3);
+  console.log(threeNewestUsers)
 
   return {
-    id: postDb._id.toString(),
+    id: postDb.id,
     title: postDb.title,
     shortDescription: postDb.shortDescription,
     content: postDb.content,
@@ -33,13 +24,42 @@ export const postQueryMapper = (
     blogName: postDb.blogName,
     createdAt: postDb.createdAt,
     extendedLikesInfo: {
-      likesCount: postDb.likesInfo?.likes?.length ?? 0,
-      dislikesCount: postDb.likesInfo?.dislikes?.length ?? 0,
-      myStatus: likeStatus,
+      likesCount:  +postDb.likecount,
+      dislikesCount:  +postDb.dislikecount,
+      myStatus: postDb.userstatus ?? 'None',
       newestLikes: threeNewestUsers,
     },
   };
 };
+
+// export const newPostMapper = (
+//     postDb: any
+// ): PostsViewModel => {
+//
+//   let likeStatus = LikesStatus.None;
+//
+//   if (isLiked) {
+//     likeStatus = LikesStatus.Like;
+//   }
+//   if (isDisliked) {
+//     likeStatus = LikesStatus.Dislike;
+//   }
+//   return {
+//     id: postDb.id,
+//     title: postDb.title,
+//     shortDescription: postDb.shortDescription,
+//     content: postDb.content,
+//     blogId: postDb.blogId,
+//     blogName: postDb.blogName,
+//     createdAt: postDb.createdAt,
+//     extendedLikesInfo: {
+//       likesCount: postDb.likesInfo?.likes?.length ?? 0,
+//       dislikesCount: postDb.likesInfo?.dislikes?.length ?? 0,
+//       myStatus: likeStatus,
+//       newestLikes: threeNewestUsers,
+//     },
+//   };
+// };
 export const postMapper = (postDb: WithId<PostDBType>) => {
   return {
     id: postDb._id.toString(),

@@ -18,6 +18,7 @@ export type CreatePostBlogRepoModel = {
   /**
    * blog name, description, websiteUrl
    */
+  id: string;
   title: string;
   shortDescription: string;
   content: string;

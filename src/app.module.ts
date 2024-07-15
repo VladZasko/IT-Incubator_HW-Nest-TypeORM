@@ -60,6 +60,9 @@ import { SecurityDevicesRepository } from './features/securityDevices/security.d
 import { ThrottlerModule } from '@nestjs/throttler';
 import {TypeOrmModule, TypeOrmModuleOptions} from '@nestjs/typeorm';
 import {AuthRepository} from "./features/auth/auth.repository";
+import {BlogsSaRepository} from "./features/blogs/blogs.sa.repository";
+import {BlogsSAController} from "./features/blogs/blogs.sa.controller";
+import {BlogsSaQueryRepository} from "./features/blogs/blogs.sa.query.repository";
 
 const dbName = 'blogs-hws';
 
@@ -128,6 +131,7 @@ export const options: TypeOrmModuleOptions = {
     AppController,
     DeleteAllData,
     BlogsController,
+    BlogsSAController,
     PostsController,
     CommentsController,
     UsersController,
@@ -142,7 +146,9 @@ export const options: TypeOrmModuleOptions = {
     AppService,
     BlogsService,
     BlogsRepository,
+    BlogsSaRepository,
     BlogsQueryRepository,
+    BlogsSaQueryRepository,
     PostsService,
     PostsRepository,
     PostsQueryRepository,
