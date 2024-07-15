@@ -34,7 +34,7 @@ import {
   RefreshTokensMetaSchema,
 } from './db/schemes/token.schemes';
 import { AuthController } from './features/auth/auth.controller';
-import { AuthRepository } from './features/auth/auth.repository';
+import { AuthMongoRepository } from './features/auth/auth.mongo.repository';
 import { AuthQueryRepository } from './features/auth/auth.query.repository';
 import { LocalStrategy } from './features/auth/strategies/local.strategy';
 import { JwtStrategy } from './features/auth/strategies/jwt.strategy';
@@ -58,6 +58,11 @@ import { SecurityDevicesService } from './features/securityDevices/security.devi
 import { SecurityDevicesQueryRepository } from './features/securityDevices/security.devices.query.repository';
 import { SecurityDevicesRepository } from './features/securityDevices/security.devices.repository';
 import { ThrottlerModule } from '@nestjs/throttler';
+import {TypeOrmModule, TypeOrmModuleOptions} from '@nestjs/typeorm';
+import {AuthRepository} from "./features/auth/auth.repository";
+import {BlogsSaRepository} from "./features/blogs/blogs.sa.repository";
+import {BlogsSAController} from "./features/blogs/blogs.sa.controller";
+import {BlogsSaQueryRepository} from "./features/blogs/blogs.sa.query.repository";
 
 const dbName = 'blogs-hws';
 
@@ -70,11 +75,23 @@ const useCases = [
   RefreshAndAccessTokenUseCase,
   ResendingConfirmEmailUseCase,
 ];
+
+export const options: TypeOrmModuleOptions = {
+  type: 'postgres',
+  host: 'localhost',
+  port: 5432,
+  username: 'postgres',
+  password: 'sa',
+  database: 'incubator-HW',
+  autoLoadEntities: false,
+  synchronize: false,
+};
 @Module({
   imports: [
     configModule,
+    TypeOrmModule.forRoot(options),
     MongooseModule.forRoot(
-      process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
+        process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
     ),
     MongooseModule.forFeature([
       {
@@ -114,6 +131,7 @@ const useCases = [
     AppController,
     DeleteAllData,
     BlogsController,
+    BlogsSAController,
     PostsController,
     CommentsController,
     UsersController,
@@ -128,7 +146,9 @@ const useCases = [
     AppService,
     BlogsService,
     BlogsRepository,
+    BlogsSaRepository,
     BlogsQueryRepository,
+    BlogsSaQueryRepository,
     PostsService,
     PostsRepository,
     PostsQueryRepository,
@@ -139,6 +159,7 @@ const useCases = [
     UsersRepository,
     UsersQueryRepository,
     AuthRepository,
+    AuthMongoRepository,
     AuthQueryRepository,
     LocalStrategy,
     JwtStrategy,
