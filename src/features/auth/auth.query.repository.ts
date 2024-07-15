@@ -5,49 +5,26 @@ import { ObjectId } from 'mongodb';
 import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
 import { UsersAuthViewModel } from './models/output/UsersViewModel';
 import { userAuthMapper } from './mapper/mappers';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
 @Injectable()
 export class AuthQueryRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectModel(UserDBType.name) private userModel: Model<UserDocument>,
   ) {}
   async getUserById(id: string): Promise<UsersAuthViewModel | null> {
-    const query = `
-        SELECT "login", "email", "createdAt", "passwordHash", "passwordSalt", "id"
-            FROM public."Users"
-            WHERE "id" = $1
-        `
+    const user = await this.userModel.findOne({ _id: new ObjectId(id) });
 
-    const result = await this.dataSource.query(
-        query,[
-          id
-        ]);
+    if (!user) {
+      return null;
+    }
 
-    if(!result[0]) return null
-
-    return userAuthMapper(result[0]);
+    return userAuthMapper(user);
   }
   async findByLoginOrEmail(loginOrEmail: string) {
-      const query = `
-            SELECT u.*, ec.*, pc.*
-            FROM "Users" as u
-            LEFT JOIN "EmailConfirmation" as ec
-            ON u."id" = ec."userId"
-            LEFT JOIN "PasswordRecovery" as pc
-            ON u."id" = pc."userId"
-            WHERE "login" like $1 OR "email" like $1;
-            `
-
-      const findByLoginOrEmail = await this.dataSource.query(
-          query,[
-              loginOrEmail,
-          ]);
-
-      console.log(findByLoginOrEmail[0])
-
-      return findByLoginOrEmail[0];
-
+    return this.userModel.findOne({
+      $or: [
+        { 'accountData.email': loginOrEmail },
+        { 'accountData.login': loginOrEmail },
+      ],
+    });
   }
 }

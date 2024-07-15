@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { AuthMongoRepository } from '../../auth.mongo.repository';
+import { AuthRepository } from '../../auth.repository';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserModel } from '../../../users/models/input/CreateUserModel';
-import {AuthRepository} from "../../auth.repository";
 
 export class RefreshAndAccessTokenCommand {
   constructor(public createData: CreateUserModel) {}
@@ -19,8 +18,7 @@ export class RefreshAndAccessTokenUseCase {
   async login(userId: string) {
     const payload = { sub: userId };
     return this.jwtService.sign(payload, {
-      //expiresIn: this.configService.get('auth.ACCESS_TOKEN_TIME'),
-      expiresIn: '1000s',
+      expiresIn: this.configService.get('auth.ACCESS_TOKEN_TIME'),
     });
   }
 
@@ -31,8 +29,7 @@ export class RefreshAndAccessTokenUseCase {
       issuedAt: dataRefreshToken.issuedAt,
     };
     return this.jwtService.sign(payload, {
-      //expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
-      expiresIn: '2000s',
+      expiresIn: this.configService.get('auth.REFRESH_TOKEN_TIME'),
     });
   }
 
