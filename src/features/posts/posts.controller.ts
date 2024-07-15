@@ -34,10 +34,10 @@ import {validate as uuidValidate} from "uuid";
 @Controller('posts')
 export class PostsController {
   constructor(
-      protected postsService: PostsService,
-      protected postsQueryRepository: PostsQueryRepository,
-      protected blogsRepository: BlogsRepository,
-      protected authQueryRepository: AuthQueryRepository,
+    protected postsService: PostsService,
+    protected postsQueryRepository: PostsQueryRepository,
+    protected blogsRepository: BlogsRepository,
+    protected authQueryRepository: AuthQueryRepository,
   ) {}
 
   //@UseGuards(AccessRolesGuard)
@@ -47,8 +47,8 @@ export class PostsController {
     //const likeStatusData = req.userId;
     const likeStatusData = req.user.userId;
     const posts = await this.postsQueryRepository.getAllPosts(
-        query,
-        likeStatusData,
+      query,
+      likeStatusData,
     );
     if (!posts) {
       // Возвращаем HTTP статус 404 и сообщение
@@ -97,8 +97,8 @@ export class PostsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
     const post = await this.postsQueryRepository.getPostById(
-        postId,
-        likeStatusData,
+      postId,
+      likeStatusData,
     );
     if (!post) {
       // Возвращаем HTTP статус 404 и сообщение
@@ -128,9 +128,9 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @Post(':id/comments')
   async createCommentByPost(
-      @Request() req,
-      @Body() inputModel: CreateCommentModel,
-      @Param('id') postId: string,
+    @Request() req,
+    @Body() inputModel: CreateCommentModel,
+    @Param('id') postId: string,
   ) {
     if (!uuidValidate(postId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
@@ -151,8 +151,8 @@ export class PostsController {
     };
 
     const newComment = await this.postsService.createCommentByPost(
-        createData,
-        post.id,
+      createData,
+      post.id,
     );
 
     return newComment;
@@ -177,9 +177,9 @@ export class PostsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Put(':id/like-status')
   async updateLikes(
-      @Request() req,
-      @Body() inputModel: UpdateLikesModule,
-      @Param('id') postId: string,
+    @Request() req,
+    @Body() inputModel: UpdateLikesModule,
+    @Param('id') postId: string,
   ) {
     const likeStatus = inputModel.likeStatus;
 
@@ -203,9 +203,9 @@ export class PostsController {
     }
 
     const updateLikeStatus = await this.postsService.updateLikeStatus(
-        postId,
-        req.user.userId,
-        likeStatus,
+      postId,
+      req.user.userId,
+      likeStatus,
     );
 
     if (!updateLikeStatus) {

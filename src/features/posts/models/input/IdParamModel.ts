@@ -3,6 +3,5 @@ import {ObjectId} from "mongodb";
 
 export class IdParamModel {
     @IsUUID()
-    @IsMongoId()
     id: string;
 }

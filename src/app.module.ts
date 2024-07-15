@@ -91,7 +91,7 @@ export const options: TypeOrmModuleOptions = {
     configModule,
     TypeOrmModule.forRoot(options),
     MongooseModule.forRoot(
-        process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
+      process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
     ),
     MongooseModule.forFeature([
       {

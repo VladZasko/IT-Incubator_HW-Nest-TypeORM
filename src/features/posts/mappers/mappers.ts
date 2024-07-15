@@ -7,6 +7,21 @@ export const postQueryMapper = (
   likes?: any,
   // Id?: string,
 ): PostsViewModel => {
+  // const isLiked = likesInfo.likes.some((obj) => obj.userId === Id);
+  // const isDisliked = likesInfo.dislikes.some(
+  //   (obj) => obj.userId === Id,
+  // );
+  //
+  // let likeStatus = LikesStatus.None;
+  //
+  // if (isLiked) {
+  //   likeStatus = LikesStatus.Like;
+  // }
+  // if (isDisliked) {
+  //   likeStatus = LikesStatus.Dislike;
+  // }
+  //
+  // postDb.likesInfo.likes.reverse();
 
   const threeNewestUsers = likes
       .filter((x) => x.postId === postDb.id)
