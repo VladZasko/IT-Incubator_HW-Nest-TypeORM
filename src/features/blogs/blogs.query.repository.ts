@@ -65,38 +65,6 @@ export class BlogsQueryRepository {
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-    // const query = `
-    //         SELECT p.*, b."name" as "blogName"
-    //         FROM public."Posts" as p
-    //         LEFT JOIN "Blogs" as b
-    //         ON p."blogId" = b."id"
-    //         WHERE b."id" = $1
-    //         ORDER BY "${sortBy}"  ${sortDirection}
-    //         LIMIT ${pageSize}
-    //         OFFSET ${(pageNumber - 1) * +pageSize}
-    //         `
-    //
-    // const posts = await this.dataSource.query(
-    //     query,[
-    //       blogId,
-    //     ]);
-    //
-    // const totalCount: number = await this.dataSource.query(
-    //     `
-    //         SELECT COUNT(*) FROM "Posts"
-    //         WHERE "blogId" = '${blogId}'
-    //         `);
-    //
-    // const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
-    //
-    // return {
-    //   pagesCount,
-    //   page: +pageNumber,
-    //   pageSize: +pageSize,
-    //   totalCount: +totalCount[0].count,
-    //   items: posts.map(postQueryMapper),
-    // };
-
       const query = `
             SELECT p.*, 
                     b."name" as "blogName",
@@ -139,6 +107,7 @@ export class BlogsQueryRepository {
       const totalCount: number = await this.dataSource.query(
           `
             SELECT COUNT(*) FROM "Posts"
+            WHERE "blogId" = '${blogId}'
             `);
 
       const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);

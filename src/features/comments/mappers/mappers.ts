@@ -16,8 +16,8 @@ export const commentQueryMapper = (
     },
     createdAt: feedbackDb.createdAt,
     likesInfo: {
-      likesCount: feedbackDb.likecount,
-      dislikesCount: feedbackDb.dislikecount,
+      likesCount: +feedbackDb.likecount,
+      dislikesCount: +feedbackDb.dislikecount,
       myStatus: feedbackDb.userstatus ?? 'None',
     },
   };

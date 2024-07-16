@@ -146,13 +146,6 @@ export class PostsController {
   ) {
     const likeStatus = inputModel.likeStatus;
 
-    const user = await this.authQueryRepository.getUserById(req.user.userId);
-
-    const upData = {
-      userId: user!.id,
-      login: user!.login,
-    };
-
     if (!uuidValidate(postId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }

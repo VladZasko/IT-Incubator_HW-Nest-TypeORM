@@ -9,127 +9,110 @@ import {
 import { commentMapper } from './mappers/mappers';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
 import { LikesStatus } from '../posts/models/output/PostsViewModel';
+import {InjectDataSource} from "@nestjs/typeorm";
+import {DataSource} from "typeorm";
 @Injectable()
 export class CommentsRepository {
   constructor(
-    @InjectModel(CommentDBType.name)
-    private commentModel: Model<CommentDocument>,
+      @InjectDataSource()
+      protected dataSource: DataSource,
   ) {}
 
-  async getCommentById(id: string): Promise<any | null> {
-    const comment = await this.commentModel.findById({ _id: new ObjectId(id) });
+  // async getCommentById(id: string): Promise<any | null> {
+  //   const comment = await this.commentModel.findById({ _id: new ObjectId(id) });
+  //
+  //   if (!comment) {
+  //     return null;
+  //   }
+  //   return commentMapper(comment);
+  // }
 
-    if (!comment) {
-      return null;
-    }
-    return commentMapper(comment);
-  }
   async updateComment(
     id: string,
     upData: UpdateFeedbackModuleModel,
   ): Promise<boolean> {
-    const foundComment = await this.commentModel.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          content: upData.content,
-        },
-      },
-    );
-    return !!foundComment.matchedCount;
+    const query = `
+            UPDATE public."Comments"
+            SET "content"=$2
+            WHERE "id" = $1;
+            `
+
+    const result = await this.dataSource.query(
+        query,[
+          id,
+          upData.content,
+        ]);
+
+    return result.rowCount !== 0;
   }
-  async updateLike(id: string, upData: any): Promise<boolean> {
-    const comment = await this.commentModel.findById({ _id: new ObjectId(id) });
+  async getLikeOrDislike(commentId: string, userId: string): Promise<any> {
+    const query = `
+            SELECT *
+            FROM public."Likes"
+            WHERE "commentId" = $1 AND "userId" = $2
+            `
 
-    const isLiked = comment!.likesInfo.likes.includes(upData.userId);
-    const isDisliked = comment!.likesInfo.dislikes.includes(upData.userId);
+    const result = await this.dataSource.query(
+        query,[
+          commentId,
+          userId
+        ]);
 
-    switch (upData.likeStatus) {
-      case LikesStatus.Like:
-        if (isLiked) {
-          return true;
-        } else {
-          await this.commentModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $push: {
-                'likesInfo.likes': upData.userId,
-              },
-            },
-          );
-          if (isDisliked) {
-            await this.commentModel.updateOne(
-              { _id: new ObjectId(id) },
-              {
-                $pull: {
-                  'likesInfo.dislikes': upData.userId,
-                },
-              },
-            );
-          }
-        }
-        break;
+    if(!result[0]) return null
 
-      case LikesStatus.Dislike:
-        if (isDisliked) {
-          return true;
-        } else {
-          await this.commentModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $push: {
-                'likesInfo.dislikes': upData.userId,
-              },
-            },
-          );
-          if (isLiked) {
-            await this.commentModel.updateOne(
-              { _id: new ObjectId(id) },
-              {
-                $pull: {
-                  'likesInfo.likes': upData.userId,
-                },
-              },
-            );
-          }
-        }
-        break;
+    return result[0];
+  }
 
-      case LikesStatus.None:
-        if (isDisliked) {
-          await this.commentModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $pull: {
-                'likesInfo.dislikes': upData.userId,
-              },
-            },
-          );
-        } else if (isLiked) {
-          await this.commentModel.updateOne(
-            { _id: new ObjectId(id) },
-            {
-              $pull: {
-                'likesInfo.likes': upData.userId,
-              },
-            },
-          );
-        } else {
-          return true;
-        }
-        break;
+  async updateLikeOrDislike(likesData: any): Promise<any> {
+    const query = `
+            UPDATE public."Likes" as l
+            SET status=$3
+            WHERE l."userId" = $1 AND l."commentId" = $2;
+            `
 
-      default:
-        return false;
-    }
+    await this.dataSource.query(
+        query,[
+          likesData.userId,
+          likesData.commentId,
+          likesData.newLikeStatus,
+        ]);
 
     return true;
   }
-  async deleteCommentById(id: string): Promise<boolean> {
-    const foundComment = await this.commentModel.deleteOne({
-      _id: new ObjectId(id),
-    });
 
-    return !!foundComment.deletedCount;
+  async addLikeOrDislike(likesData: any): Promise<any> {
+    const query = `
+            INSERT INTO public."Likes"(
+            id, "userId", "commentId", status, "createdAt")
+            VALUES ($1, $2, $3, $4, $5);
+            `
+    await this.dataSource.query(
+        query,[
+          likesData.id,
+          likesData.userId,
+          likesData.commentId,
+          likesData.newLikeStatus,
+          likesData.createdAt,
+        ]);
+
+    return true;
+  }
+
+  async deleteCommentById(id: string): Promise<boolean> {
+    const query = `
+            DELETE FROM public."Comments"
+            WHERE "id" = $1
+            RETURNING id;
+            `
+    const result =await this.dataSource.query(
+        query,[
+          id
+        ]);
+
+    if(result[1] === 0){
+      return false
+    }
+
+    return true;
   }
 }

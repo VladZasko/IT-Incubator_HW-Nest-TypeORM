@@ -19,6 +19,7 @@ import { ObjectId } from 'mongodb';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
+import {validate as uuidValidate} from "uuid";
 
 @Controller('comments')
 export class CommentsController {
@@ -32,7 +33,7 @@ export class CommentsController {
   async getComment(@Request() req, @Param('id') commentId: string) {
     const likeStatusData = req.userId;
 
-    if (!ObjectId.isValid(commentId)) {
+    if (!uuidValidate(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
@@ -63,19 +64,21 @@ export class CommentsController {
       userId: req.user.userId,
     };
 
-    if (!ObjectId.isValid(commentId)) {
+    const likeStatus = inputModel.likeStatus;
+    if (!uuidValidate(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsService.getCommentById(commentId);
+    const comment = await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
     const updateLikeStatus = await this.commentsService.updateLikeStatus(
-      commentId,
-      upData,
+        commentId,
+        req.user.userId,
+        inputModel.likeStatus,
     );
 
     if (!updateLikeStatus) {
@@ -93,11 +96,11 @@ export class CommentsController {
     @Body() inputModel: UpdateFeedbackModuleModel,
     @Param('id') commentId: string,
   ) {
-    if (!ObjectId.isValid(commentId)) {
+    if (!uuidValidate(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsService.getCommentById(commentId);
+    const comment = await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([
@@ -124,16 +127,16 @@ export class CommentsController {
 
     return updateComment;
   }
-
+  //
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
   async deleteComment(@Param('id') commentId: string, @Request() req) {
-    if (!ObjectId.isValid(commentId)) {
+    if (!uuidValidate(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsService.getCommentById(commentId);
+    const comment = await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([
@@ -148,6 +151,7 @@ export class CommentsController {
     }
 
     const deletePost = this.commentsService.deleteCommentById(commentId);
+
     return deletePost;
   }
 }

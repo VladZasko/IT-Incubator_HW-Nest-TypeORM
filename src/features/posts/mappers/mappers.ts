@@ -26,6 +26,7 @@ export const postQueryMapper = (
   const threeNewestUsers = likes
       .filter((x) => x.postId === postDb.id)
       .sort((a, b) => a.createdAt < b.createdAt ? 1 : -1)
+      .slice(0,3)
       .map(x => ({addedAt: x.createdAt, userId: x.userId, login: x.login}))
 
   console.log(threeNewestUsers)
