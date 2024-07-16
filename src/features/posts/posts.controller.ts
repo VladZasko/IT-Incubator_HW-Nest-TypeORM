@@ -36,7 +36,6 @@ export class PostsController {
   constructor(
     protected postsService: PostsService,
     protected postsQueryRepository: PostsQueryRepository,
-    protected blogsRepository: BlogsRepository,
     protected authQueryRepository: AuthQueryRepository,
   ) {}
 
@@ -56,35 +55,35 @@ export class PostsController {
     return posts;
   }
 
-  // @UseGuards(AccessRolesGuard)
-  // @Get(':id/comments')
-  // async getCommentByPost(
-  //   @Request() req,
-  //   @Query() query: QueryCommentModule,
-  //   @Param() postId: IdParamModel,
-  // ) {
-  //   const likeStatusData = req.userId;
-  //
-  //   const post = await this.postsQueryRepository.getPostById(
-  //     postId.id,
-  //     likeStatusData,
-  //   );
-  //   if (!post) {
-  //     // Возвращаем HTTP статус 404 и сообщение
-  //     throw new NotFoundException('Post not found');
-  //   }
-  //
-  //   const commentByPost = await this.postsQueryRepository.getCommentByPostId(
-  //     query,
-  //     postId.id,
-  //     likeStatusData,
-  //   );
-  //   if (!commentByPost) {
-  //     // Возвращаем HTTP статус 404 и сообщение
-  //     throw new NotFoundException('Post not found');
-  //   }
-  //   return commentByPost;
-  // }
+  @UseGuards(AccessRolesGuard)
+  @Get(':id/comments')
+  async getCommentByPost(
+    @Request() req,
+    @Query() query: QueryCommentModule,
+    @Param() postId: IdParamModel,
+  ) {
+    const likeStatusData = req.userId;
+
+    const post = await this.postsQueryRepository.getPostById(
+      postId.id,
+      likeStatusData,
+    );
+    if (!post) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
+
+    const commentByPost = await this.postsQueryRepository.getCommentByPostId(
+      query,
+      postId.id,
+      likeStatusData,
+    );
+    if (!commentByPost) {
+      // Возвращаем HTTP статус 404 и сообщение
+      throw new NotFoundException('Post not found');
+    }
+    return commentByPost;
+  }
 
   @UseGuards(AccessRolesGuard)
   @Get(':id')
@@ -104,25 +103,7 @@ export class PostsController {
     }
     return post;
   }
-  //
-  // @UseGuards(BasicAuthGuard)
-  // @Post()
-  // async createPost(@Body() inputModel: CreatePostServiceModel) {
-  //   const blog = await this.blogsRepository.getBlog(inputModel.blogId);
-  //   if (!blog) {
-  //     throw new BadRequestException([
-  //       { message: 'Blog is not found', field: 'blogId' },
-  //     ]);
-  //   }
-  //   const newPost = await this.postsService.createPost(inputModel);
-  //
-  //   if (newPost === null) {
-  //     // Возвращаем HTTP статус 404 и сообщение
-  //     throw new NotFoundException('Post not found');
-  //   }
-  //   return newPost;
-  // }
-  //
+
   @UseGuards(JwtAuthGuard)
   @Post(':id/comments')
   async createCommentByPost(
@@ -155,22 +136,6 @@ export class PostsController {
 
     return newComment;
   }
-  //
-  // @UseGuards(BasicAuthGuard)
-  // @HttpCode(HttpStatus.NO_CONTENT)
-  // @Put(':id')
-  // async updatePost(
-  //   @Body() inputModel: UpdatePostModel,
-  //   @Param() postId: IdParamModel,
-  // ) {
-  //   const updatePost = await this.postsService.updatePost(postId.id, inputModel);
-  //   if (updatePost === false) {
-  //     // Возвращаем HTTP статус 404 и сообщение
-  //     throw new NotFoundException('Post not found');
-  //   }
-  //   return updatePost;
-  // }
-  //
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Put(':id/like-status')
@@ -214,16 +179,5 @@ export class PostsController {
 
     return;
   }
-  //
-  // @UseGuards(BasicAuthGuard)
-  // @Delete(':id')
-  // @HttpCode(HttpStatus.NO_CONTENT)
-  // async deletePost(@Param() postId: IdParamModel) {
-  //   const deletePost = await this.postsService.deletePostById(postId.id);
-  //   if (deletePost === false) {
-  //     // Возвращаем HTTP статус 404 и сообщение
-  //     throw new NotFoundException('Post not found');
-  //   }
-  //   return deletePost;
-  // }
+
 }

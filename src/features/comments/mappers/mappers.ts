@@ -4,33 +4,21 @@ import { CommentViewModel } from '../models/output/CommentViewModel';
 import { LikesStatus } from '../../posts/models/output/PostsViewModel';
 
 export const commentQueryMapper = (
-  feedbackDb: WithId<CommentDBType>,
+  feedbackDb: any,
   userId?: string,
 ): CommentViewModel => {
-  const isLiked = feedbackDb!.likesInfo.likes.includes(userId!);
-  const isDisliked = feedbackDb!.likesInfo.dislikes.includes(userId!);
-
-  let likeStatus = LikesStatus.None;
-
-  if (isLiked) {
-    likeStatus = LikesStatus.Like;
-  }
-  if (isDisliked) {
-    likeStatus = LikesStatus.Dislike;
-  }
-
   return {
-    id: feedbackDb._id.toString(),
+    id: feedbackDb.id,
     content: feedbackDb.content,
     commentatorInfo: {
-      userId: feedbackDb.commentatorInfo.userId,
-      userLogin: feedbackDb.commentatorInfo.userLogin,
+      userId: feedbackDb.userId,
+      userLogin: feedbackDb.userLogin,
     },
     createdAt: feedbackDb.createdAt,
     likesInfo: {
-      likesCount: feedbackDb.likesInfo?.likes?.length ?? 0,
-      dislikesCount: feedbackDb.likesInfo?.dislikes?.length ?? 0,
-      myStatus: likeStatus,
+      likesCount: feedbackDb.likecount,
+      dislikesCount: feedbackDb.dislikecount,
+      myStatus: feedbackDb.userstatus ?? 'None',
     },
   };
 };

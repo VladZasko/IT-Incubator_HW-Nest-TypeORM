@@ -83,37 +83,63 @@ export class PostsQueryRepository {
           ),
     }
   }
-  // async getCommentByPostId(
-  //   sortData: QueryCommentModule,
-  //   id: string,
-  //   likeStatusData?: string,
-  // ): Promise<CommentViewModelGetAllComments> {
-  //   const pageNumber = sortData.pageNumber ?? 1;
-  //   const pageSize = sortData.pageSize ?? 10;
-  //   const sortBy = sortData.sortBy ?? 'createdAt';
-  //   const sortDirection = sortData.sortDirection ?? 'desc';
-  //
-  //   const comments = await this.commentModel
-  //     .find({ postId: id })
-  //     .sort([[sortBy, sortDirection]])
-  //     .skip((pageNumber - 1) * +pageSize)
-  //     .limit(+pageSize)
-  //     .lean();
-  //
-  //   const totalCount = await this.commentModel.countDocuments({ postId: id });
-  //
-  //   const pagesCount = Math.ceil(totalCount / +pageSize);
-  //
-  //   return {
-  //     pagesCount,
-  //     page: +pageNumber,
-  //     pageSize: +pageSize,
-  //     totalCount,
-  //     items: comments.map((comment) =>
-  //       commentQueryMapper(comment, likeStatusData),
-  //     ),
-  //   };
-  // }
+  async getCommentByPostId(
+    sortData: QueryCommentModule,
+    id: string,
+    likeStatusData?: string,
+  ): Promise<CommentViewModelGetAllComments> {
+    const pageNumber = sortData.pageNumber ?? 1;
+    const pageSize = sortData.pageSize ?? 10;
+    const sortBy = sortData.sortBy ?? 'createdAt';
+    const sortDirection = sortData.sortDirection ?? 'desc';
+
+      const query = `
+            SELECT c.*, 
+                    u."login" as "userLogin",
+                    COALESCE(lc.like_count, 0) as likeCount,
+                    COALESCE(lc.dislike_count, 0) as dislikeCount,
+            l."status" as userStatus
+            FROM public."Comments" as c
+            LEFT JOIN "Users" as u
+            ON c."userId" = u."id"
+            LEFT JOIN (
+            SELECT "commentId", 
+                 COUNT(CASE WHEN "status" = 'Like' THEN 1 END) as like_count,
+                 COUNT(CASE WHEN "status" = 'Dislike' THEN 1 END) as dislike_count
+                FROM "Likes"
+                GROUP BY "commentId"
+            ) as lc ON c."id" = lc."commentId"
+            LEFT JOIN "Likes" as l ON c."id" = l."commentId" AND l."userId" = $2
+            WHERE c."postId" = $1
+            ORDER BY "${sortBy}"  ${sortDirection}
+            LIMIT ${pageSize}
+            OFFSET ${(pageNumber - 1) * +pageSize}
+            `
+
+
+      const comments = await this.dataSource.query(
+          query, [id, likeStatusData]);
+
+
+      const totalCount: number = await this.dataSource.query(
+          `
+            SELECT COUNT(*) FROM "Comments"
+            WHERE "postId" = '${id}'
+            `);
+
+      const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+
+      return {
+          pagesCount,
+          page: +pageNumber,
+          pageSize: +pageSize,
+          totalCount: +totalCount[0].count,
+          items: comments.map((comment) =>
+              commentQueryMapper(comment),
+          ),
+      }
+
+  }
   async getPostById(
     id: string,
     likeStatusData?: string,
@@ -138,18 +164,12 @@ export class PostsQueryRepository {
             WHERE p."id" = $1
             `
 
-    const query2 = `
-            SELECT 
-                l."userId" AS likeUserId,
-                l."postId" AS likePostId,
-                d."userId" AS dislikeUserId,
-                d."postId" AS dislikePostId
-            FROM "LikesForPosts" l
-            FULL OUTER JOIN "DislikesForPosts" d
-            ON l."userId" = d."userId" AND l."postId" = d."postId"
-            WHERE (l."userId" IS NULL OR d."userId" IS NULL)
-                AND (l."userId" = $2 OR d."userId" = $2)
-                AND (l."postId" = $1 OR d."postId" = $1);
+      const query2 = `
+            SELECT l.*, u."login" 
+            FROM public."Likes" as l
+            LEFT JOIN "Users" as u
+            ON l."userId" = u."id"
+            WHERE l."status" = 'Like' AND l."postId" = $1
             `
 
     const result = await this.dataSource.query(
@@ -159,14 +179,11 @@ export class PostsQueryRepository {
         ]);
 
     const result2 = await this.dataSource.query(
-        query2,[
-          id,
-          likeStatusData,
-        ]);
-    console.log(result2)
+        query2,[ id ]);
+
     if(!result[0]) return null
 
-    return postQueryMapper(result[0]);
+    return postQueryMapper(result[0],result2);
   }
 
   async getPostId(

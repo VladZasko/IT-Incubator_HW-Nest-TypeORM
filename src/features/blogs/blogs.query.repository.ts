@@ -65,38 +65,93 @@ export class BlogsQueryRepository {
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-    const query = `
-            SELECT p.*, b."name" as "blogName"
+    // const query = `
+    //         SELECT p.*, b."name" as "blogName"
+    //         FROM public."Posts" as p
+    //         LEFT JOIN "Blogs" as b
+    //         ON p."blogId" = b."id"
+    //         WHERE b."id" = $1
+    //         ORDER BY "${sortBy}"  ${sortDirection}
+    //         LIMIT ${pageSize}
+    //         OFFSET ${(pageNumber - 1) * +pageSize}
+    //         `
+    //
+    // const posts = await this.dataSource.query(
+    //     query,[
+    //       blogId,
+    //     ]);
+    //
+    // const totalCount: number = await this.dataSource.query(
+    //     `
+    //         SELECT COUNT(*) FROM "Posts"
+    //         WHERE "blogId" = '${blogId}'
+    //         `);
+    //
+    // const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+    //
+    // return {
+    //   pagesCount,
+    //   page: +pageNumber,
+    //   pageSize: +pageSize,
+    //   totalCount: +totalCount[0].count,
+    //   items: posts.map(postQueryMapper),
+    // };
+
+      const query = `
+            SELECT p.*, 
+                    b."name" as "blogName",
+                    COALESCE(lc.like_count, 0) as likeCount,
+                    COALESCE(lc.dislike_count, 0) as dislikeCount,
+            l."status" as userStatus
             FROM public."Posts" as p
             LEFT JOIN "Blogs" as b
             ON p."blogId" = b."id"
-            WHERE b."id" = $1
+            LEFT JOIN (
+            SELECT "postId", 
+                 COUNT(CASE WHEN "status" = 'Like' THEN 1 END) as like_count,
+           COUNT(CASE WHEN "status" = 'Dislike' THEN 1 END) as dislike_count
+                FROM "Likes"
+                GROUP BY "postId"
+            ) as lc ON p."id" = lc."postId"
+            LEFT JOIN "Likes" as l ON p."id" = l."postId" AND l."userId" = $2
+            WHERE b."id" = $1 
             ORDER BY "${sortBy}"  ${sortDirection}
             LIMIT ${pageSize}
             OFFSET ${(pageNumber - 1) * +pageSize}
             `
 
-    const posts = await this.dataSource.query(
-        query,[
-          blogId,
-        ]);
 
-    const totalCount: number = await this.dataSource.query(
-        `
+      const posts = await this.dataSource.query(
+          query, [blogId,likeStatusData]);
+
+      const query2 = `
+            SELECT l.*, u."login" 
+            FROM public."Likes" as l
+            LEFT JOIN "Users" as u
+            ON l."userId" = u."id"
+            WHERE l."status" = 'Like'
+            `
+
+      const likes = await this.dataSource.query(
+          query2);
+
+
+      const totalCount: number = await this.dataSource.query(
+          `
             SELECT COUNT(*) FROM "Posts"
-            WHERE "blogId" = '${blogId}'
             `);
 
-    const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+      const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
 
-    return {
-      pagesCount,
-      page: +pageNumber,
-      pageSize: +pageSize,
-      totalCount: +totalCount[0].count,
-      items: posts.map(postQueryMapper),
-    };
-
+      return {
+          pagesCount,
+          page: +pageNumber,
+          pageSize: +pageSize,
+          totalCount: +totalCount[0].count,
+          items: posts.map((posts) =>
+              postQueryMapper(posts, likes),
+          ),
+      }
   }
   async getBlogById(id: string): Promise<BlogsViewModel | null> {
     const query = `
