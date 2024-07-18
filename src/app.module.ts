@@ -58,11 +58,19 @@ import { SecurityDevicesService } from './features/securityDevices/security.devi
 import { SecurityDevicesQueryRepository } from './features/securityDevices/security.devices.query.repository';
 import { SecurityDevicesRepository } from './features/securityDevices/security.devices.repository';
 import { ThrottlerModule } from '@nestjs/throttler';
-import {TypeOrmModule, TypeOrmModuleOptions} from '@nestjs/typeorm';
-import {AuthRepository} from "./features/auth/auth.repository";
-import {BlogsSaRepository} from "./features/blogs/blogs.sa.repository";
-import {BlogsSAController} from "./features/blogs/blogs.sa.controller";
-import {BlogsSaQueryRepository} from "./features/blogs/blogs.sa.query.repository";
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { AuthRepository } from './features/auth/auth.repository';
+import { BlogsSaRepository } from './features/blogs/blogs.sa.repository';
+import { BlogsSAController } from './features/blogs/blogs.sa.controller';
+import { BlogsSaQueryRepository } from './features/blogs/blogs.sa.query.repository';
+import { User } from './db/entitys/user.entity';
+import { EmailConfirmation } from './db/entitys/email.confirmatiom.entity';
+import { PasswordRecovery } from './db/entitys/password.recovery.entity';
+import { RefreshTokenMeta } from './db/entitys/refresh.token.meta.entity';
+import { Blog } from './db/entitys/blog.entity';
+import { Post } from './db/entitys/post.entity';
+import { Like } from './db/entitys/like.entity';
+import { Comment } from './db/entitys/comments.entity';
 
 const dbName = 'blogs-hws';
 
@@ -82,14 +90,24 @@ export const options: TypeOrmModuleOptions = {
   port: 5432,
   username: 'postgres',
   password: 'sa',
-  database: 'incubator-HW',
-  autoLoadEntities: false,
-  synchronize: false,
+  database: 'Incubator-HW-TypeORM',
+  autoLoadEntities: true,
+  synchronize: true,
 };
 @Module({
   imports: [
     configModule,
     TypeOrmModule.forRoot(options),
+    TypeOrmModule.forFeature([
+      User,
+      EmailConfirmation,
+      PasswordRecovery,
+      RefreshTokenMeta,
+      Blog,
+      Post,
+      Comment,
+      Like,
+    ]),
     MongooseModule.forRoot(
       process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
     ),

@@ -10,7 +10,7 @@ import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { Result } from '../../utils/result.type';
 import { AuthService } from '../auth.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {AuthRepository} from "../../auth.repository";
+import { AuthRepository } from '../../auth.repository';
 
 export class CreateUserCommand {
   constructor(public createData: CreateUserModel) {}
@@ -53,28 +53,32 @@ export class CreateUserUseCase implements ICommandHandler<CreateUserCommand> {
     );
 
     const newUser = {
-      accountData: {
-        login: command.createData.login,
-        email: command.createData.email,
-        createdAt: new Date().toISOString(),
-        passwordHash,
-        passwordSalt,
-        id: uuidv4(),
-      },
-      emailConfirmation: {
-        confirmationCode: uuidv4(),
-        expirationDate: add(new Date(), {
-          minutes: 15,
-        }),
-        resendingCode: new Date(),
-        isConfirmed: false,
-      },
+      login: command.createData.login,
+      email: command.createData.email,
+      createdAt: new Date().toISOString(),
+      passwordHash,
+      passwordSalt,
+      id: uuidv4(),
     };
-    const createResult = await this.authRepository.createUser(newUser);
+
+    const emailConfirmation = {
+      confirmationCode: uuidv4(),
+      expirationDate: add(new Date(), {
+        minutes: 15,
+      }),
+      resendingCode: new Date(),
+      isConfirmed: false,
+      id: uuidv4(),
+      userId: newUser.id,
+    };
+    const createResult = await this.authRepository.createUser(
+      newUser,
+      emailConfirmation,
+    );
     try {
       const emailAdapterDto: EmailAdapterDto = {
-        email: newUser.accountData.email,
-        confirmationCode: newUser.emailConfirmation.confirmationCode,
+        email: newUser.email,
+        confirmationCode: emailConfirmation.confirmationCode,
       };
       await this.emailAdapter.sendCode(emailAdapterDto);
     } catch (error) {

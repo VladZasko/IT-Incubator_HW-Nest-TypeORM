@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {AuthRepository} from "../../auth.repository";
+import { AuthRepository } from '../../auth.repository';
 
 export class ResendingConfirmEmailCommand {
   constructor(public email: string) {}
@@ -23,7 +23,7 @@ export class ResendingConfirmEmailUseCase
       email: command.email,
     });
     if (!user) return false;
-    if (user.isConfirmed) return false;
+    //if (user.isConfirmed) return false;
 
     const newConfirmationCode = uuidv4();
     const newExpirationDate = add(new Date(), {
