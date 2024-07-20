@@ -1,9 +1,10 @@
-import {Injectable} from '@nestjs/common';
-import {PostsRepository} from './posts.repository';
-import {LikesStatus} from './models/output/PostsViewModel';
-import {BlogsRepository} from '../blogs/blogs.repository';
-import {CreateCommentServiceModel} from '../comments/models/input/CreateCommentModel';
-import {v4 as uuidv4} from 'uuid';
+import { Injectable } from '@nestjs/common';
+import { PostsRepository } from './posts.repository';
+import { LikesStatus } from './models/output/PostsViewModel';
+import { BlogsRepository } from '../blogs/blogs.repository';
+import { CreateCommentServiceModel } from '../comments/models/input/CreateCommentModel';
+import { v4 as uuidv4 } from 'uuid';
+import { Like } from '../../db/entitys/like.entity';
 
 @Injectable()
 export class PostsService {
@@ -46,98 +47,41 @@ export class PostsService {
 
     return await this.postsRepository.createCommentByPost(newComment);
   }
-  // async updatePost(id: string, upData: UpdatePostModel): Promise<boolean> {
-  //   return await this.postsRepository.updatePost(id, upData);
-  // }
-  // async updateLikeStatus(
-  //   postId: string,
-  //   userId: string,
-  //   newLikeStatus: LikesStatus,
-  // ): Promise<boolean> {
-  //   const likesData = {
-  //     id: uuidv4(),
-  //     addedAt: new Date().toISOString(),
-  //     userId: userId,
-  //     postId: postId,
-  //   };
-  //
-  //   const findLike = await this.postsRepository.getLike(postId, userId)
-  //   const findDislike = await this.postsRepository.getDislike(postId, userId)
-  //
-  //   let likeStatus = 'None';
-  //   if(findLike){
-  //     likeStatus = 'Like'
-  //   } else if (findDislike){
-  //     likeStatus = 'Dislike'
-  //   }
-  //
-  //   if(newLikeStatus === LikesStatus.Like){
-  //     switch (likeStatus) {
-  //       case 'Like':
-  //         //await this.postsRepository.deleteLike(userId, postId);
-  //         break;
-  //       case 'Dislike':
-  //         await this.postsRepository.deleteDislike(userId, postId);
-  //         await this.postsRepository.addLike(likesData);
-  //         break;
-  //       case 'None':
-  //         await this.postsRepository.addLike(likesData);
-  //         break;
-  //     }
-  //   }
-  //
-  //   if(newLikeStatus === LikesStatus.Dislike){
-  //     switch (likeStatus) {
-  //       case 'Dislike':
-  //         break;
-  //       case 'Like':
-  //         await this.postsRepository.deleteLike(userId, postId);
-  //         await this.postsRepository.addDislike(likesData);
-  //         break;
-  //       case 'None':
-  //         await this.postsRepository.addDislike(likesData);
-  //         break;
-  //     }
-  //   }
-  //
-  //   if(newLikeStatus === LikesStatus.None){
-  //     switch (likeStatus) {
-  //       case 'Dislike':
-  //         await this.postsRepository.deleteDislike(userId, postId);
-  //         break;
-  //       case 'Like':
-  //         await this.postsRepository.deleteLike(userId, postId);
-  //         break;
-  //     }
-  //   }
-  //
-  //   return true
-  // }
 
   async updateLikeStatus(
-      postId: string,
-      userId: string,
-      newLikeStatus: LikesStatus,
+    postId: string,
+    userId: string,
+    newLikeStatus: LikesStatus,
   ): Promise<boolean> {
+    // const updateLikesData = {
+    //   userId: userId,
+    //   postId: postId,
+    //   newLikeStatus,
+    // };
 
-    const updateLikesData = {
-      userId: userId,
-      postId: postId,
-      newLikeStatus
-    };
+    const findLikeOrDislike = await this.postsRepository.getLikeOrDislike(
+      postId,
+      userId,
+    );
 
-    const findLikeOrDislike = await this.postsRepository.getLikeOrDislike(postId, userId)
+    if (!findLikeOrDislike) {
+      if (newLikeStatus !== LikesStatus.None) {
+        const newLike = new Like();
 
-    if(!findLikeOrDislike){
-      if (newLikeStatus !== LikesStatus.None){
-        const createLikesData = {
-          id: uuidv4(),
-          createdAt: new Date().toISOString(),
-          ...updateLikesData,
-        };
-        return await this.postsRepository.addLikeOrDislike(createLikesData);
+        newLike.id = uuidv4();
+        newLike.createdAt = new Date().toISOString();
+        newLike.postId = postId;
+        newLike.userId = userId;
+        newLike.status = newLikeStatus;
+
+        // const createLikesData = {
+        //   id: uuidv4(),
+        //   createdAt: new Date().toISOString(),
+        //   ...updateLikesData,
+        // };
+        return await this.postsRepository.addLikeOrDislike(newLike);
       } else {
-        return true
+        return true;
       }
     }
 
@@ -145,7 +89,9 @@ export class PostsService {
       return true;
     }
 
-    await this.postsRepository.updateLikeOrDislike(updateLikesData);
+    findLikeOrDislike.status = newLikeStatus;
+
+    await this.postsRepository.addLikeOrDislike(findLikeOrDislike);
 
     return true;
   }

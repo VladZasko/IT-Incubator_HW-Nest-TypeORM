@@ -29,8 +29,8 @@ import { ResendingConfirmEmailCommand } from './application/use-cases/resending.
 import { NewPasswordCommand } from './application/use-cases/new.password.use.case';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import {CreatePostBlogModel} from "./models/input/ConfirmCodeModel";
-import {LoginAuthUserModel} from "./models/input/EmailModel";
+import { CreatePostBlogModel } from './models/input/ConfirmCodeModel';
+import { LoginAuthUserModel } from './models/input/EmailModel';
 
 //@UseGuards(ThrottlerGuard)
 @Controller('auth')
@@ -76,9 +76,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('password-recovery')
   async passwordRecovery(@Body() email: LoginAuthUserModel) {
-    await this.commandBus.execute(
-      new RecoveryPasswordCommand(email.email),
-    );
+    await this.commandBus.execute(new RecoveryPasswordCommand(email.email));
     return;
   }
 
@@ -136,8 +134,10 @@ export class AuthController {
   }
   @Post('registration-confirmation')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async registrationConfirmation(@Body()  code: CreatePostBlogModel) {
-    const result = await this.commandBus.execute(new ConfirmEmailCommand(code.code));
+  async registrationConfirmation(@Body() code: CreatePostBlogModel) {
+    const result = await this.commandBus.execute(
+      new ConfirmEmailCommand(code.code),
+    );
 
     if (!result) {
       throw new BadRequestException([

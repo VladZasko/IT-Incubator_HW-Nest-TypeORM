@@ -15,175 +15,159 @@ import {
 } from '../../db/schemes/comments.schemes';
 import { CreateCommentModelRepo } from '../comments/models/input/CreateCommentModel';
 import { CommentViewModel } from '../comments/models/output/CommentViewModel';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
-import {BlogDBType} from "../../db/schemes/blogs.schemes";
-import {CreateBlogReposModel} from "../blogs/models/input/CreateBlogModel";
-import {BlogsViewModel} from "../blogs/models/output/BlogsViewModel";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { BlogDBType } from '../../db/schemes/blogs.schemes';
+import { CreateBlogReposModel } from '../blogs/models/input/CreateBlogModel';
+import { BlogsViewModel } from '../blogs/models/output/BlogsViewModel';
+import { Like } from '../../db/entitys/like.entity';
 @Injectable()
 export class PostsRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
-  ) {
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(Like)
+    private readonly likeRepository: Repository<Like>,
+  ) {}
+  async getLikeOrDislike(postId: string, userId: string): Promise<Like | null> {
+    const queryBuilder = await this.likeRepository
+      .createQueryBuilder('l')
+      .where('l.postId = :postId', { postId: postId })
+      .andWhere('l.userId = :userId', { userId: userId })
+      .getOne();
+    // const query = `
+    //         SELECT *
+    //         FROM public."Likes"
+    //         WHERE "postId" = $1 AND "userId" = $2
+    //         `;
+
+    // const result = await this.dataSource.query(query, [postId, userId]);
+    //
+    // if (!result[0]) return null;
+
+    return queryBuilder;
   }
-    async getLikeOrDislike(postId: string, userId: string): Promise<any> {
-        const query = `
-            SELECT *
-            FROM public."Likes"
-            WHERE "postId" = $1 AND "userId" = $2
-            `
 
-        const result = await this.dataSource.query(
-            query,[
-                postId,
-                userId
-            ]);
-
-        if(!result[0]) return null
-
-        return result[0];
-    }
-
-    async updateLikeOrDislike(likesData: any): Promise<any> {
-        const query = `
+  async updateLikeOrDislike(likesData: any): Promise<any> {
+    const query = `
             UPDATE public."Likes" as l
             SET status=$3
             WHERE l."userId" = $1 AND l."postId" = $2;
-            `
+            `;
 
-        await this.dataSource.query(
-            query,[
-                likesData.userId,
-                likesData.postId,
-                likesData.newLikeStatus,
-            ]);
+    await this.dataSource.query(query, [
+      likesData.userId,
+      likesData.postId,
+      likesData.newLikeStatus,
+    ]);
 
-        return true;
-    }
+    return true;
+  }
 
-    async addLikeOrDislike(likesData: any): Promise<any> {
-        const query = `
-            INSERT INTO public."Likes"(
-            id, "userId", "postId", status, "createdAt")
-            VALUES ($1, $2, $3, $4, $5);
-            `
+  async addLikeOrDislike(likesData: any): Promise<any> {
+    // const query = `
+    //         INSERT INTO public."Likes"(
+    //         id, "userId", "postId", status, "createdAt")
+    //         VALUES ($1, $2, $3, $4, $5);
+    //         `;
+    //
+    // await this.dataSource.query(query, [
+    //   likesData.id,
+    //   likesData.userId,
+    //   likesData.postId,
+    //   likesData.newLikeStatus,
+    //   likesData.createdAt,
+    // ]);
 
-        await this.dataSource.query(
-            query,[
-                likesData.id,
-                likesData.userId,
-                likesData.postId,
-                likesData.newLikeStatus,
-                likesData.createdAt,
-            ]);
+    const addLike = await this.likeRepository.save(likesData);
+    return !!addLike;
+  }
 
-        return true;
-    }
-
-    async getLike(postId: string, userId: string): Promise<any> {
-        const query = `
+  async getLike(postId: string, userId: string): Promise<any> {
+    const query = `
             SELECT *
             FROM public."LikesForPosts"
             WHERE "postId" = $1 AND "userId" = $2
-            `
+            `;
 
-        const result = await this.dataSource.query(
-            query,[
-                postId,
-                userId
-            ]);
+    const result = await this.dataSource.query(query, [postId, userId]);
 
-        return result[0];
-    }
+    return result[0];
+  }
 
-    async getDislike(postId: string, userId: string): Promise<any> {
-        const query = `
+  async getDislike(postId: string, userId: string): Promise<any> {
+    const query = `
             SELECT *
             FROM public."DislikesForPosts"
             WHERE "postId" = $1 AND "userId" = $2
-            `
+            `;
 
-        const result = await this.dataSource.query(
-            query,[
-                postId,
-                userId
-            ]);
+    const result = await this.dataSource.query(query, [postId, userId]);
 
-        return result[0];
-    }
+    return result[0];
+  }
 
-    async deleteLike(userId: string, postId: string): Promise<boolean> {
-        const query = `
+  async deleteLike(userId: string, postId: string): Promise<boolean> {
+    const query = `
             DELETE FROM public."LikesForPosts"
             WHERE "postId" = $1 AND "userId" = $2 RETURNING id;
-            `
-        const result =await this.dataSource.query(
-            query,[
-                postId,
-                userId
-            ]);
+            `;
+    const result = await this.dataSource.query(query, [postId, userId]);
 
-        if(result[1] === 0){
-            return false
-        }
-
-        return true;
+    if (result[1] === 0) {
+      return false;
     }
 
-    async deleteDislike(userId: string, postId: string): Promise<boolean> {
-        const query = `
+    return true;
+  }
+
+  async deleteDislike(userId: string, postId: string): Promise<boolean> {
+    const query = `
             DELETE FROM public."DislikesForPosts"
             WHERE "postId" = $1 AND "userId" = $2 RETURNING id;
-            `
-        const result =await this.dataSource.query(
-            query,[
-                postId,
-                userId
-            ]);
+            `;
+    const result = await this.dataSource.query(query, [postId, userId]);
 
-        if(result[1] === 0){
-            return false
-        }
-
-        return true;
+    if (result[1] === 0) {
+      return false;
     }
 
-    async addLike(likesData: any): Promise<any> {
-        const query = `
+    return true;
+  }
+
+  async addLike(likesData: any): Promise<any> {
+    const query = `
             INSERT INTO public."LikesForPosts"(
             id, "postId", "userId", "createdAt")
             VALUES ($1, $2, $3, $4);
-            `
+            `;
 
-        await this.dataSource.query(
-            query,[
-                likesData.id,
-                likesData.postId,
-                likesData.userId,
-                likesData.addedAt,
-            ]);
+    await this.dataSource.query(query, [
+      likesData.id,
+      likesData.postId,
+      likesData.userId,
+      likesData.addedAt,
+    ]);
 
-        return true;
-    }
+    return true;
+  }
 
-    async addDislike(likesData: any): Promise<any> {
-        const query = `
+  async addDislike(likesData: any): Promise<any> {
+    const query = `
             INSERT INTO public."DislikesForPosts"(
             id, "postId", "userId", "createdAt")
             VALUES ($1, $2, $3, $4);
-            `
+            `;
 
-        await this.dataSource.query(
-            query,[
-                likesData.id,
-                likesData.postId,
-                likesData.userId,
-                likesData.addedAt,
-            ]);
+    await this.dataSource.query(query, [
+      likesData.id,
+      likesData.postId,
+      likesData.userId,
+      likesData.addedAt,
+    ]);
 
-        return true;
-    }
+    return true;
+  }
   // async createPost(createPostDto: any): Promise<PostsViewModel> {
   //   const createdPost = new this.postModel(createPostDto);
   //   await createdPost.save();
@@ -221,23 +205,20 @@ export class PostsRepository {
   //   return !!foundPost.matchedCount;
   //
   // }
-  async createCommentByPost(
-      createData: CreateCommentModelRepo,
-  ): Promise<any> {
+  async createCommentByPost(createData: CreateCommentModelRepo): Promise<any> {
     const query = `
             INSERT INTO public."Comments"(
             id, content, "createdAt", "postId", "userId")
             VALUES ($1, $2, $3, $4, $5);
-            `
+            `;
 
-    await this.dataSource.query(
-        query, [
-          createData.id,
-          createData.content,
-          createData.createdAt,
-          createData.postId,
-          createData.userId,
-        ]);
+    await this.dataSource.query(query, [
+      createData.id,
+      createData.content,
+      createData.createdAt,
+      createData.postId,
+      createData.userId,
+    ]);
 
     const query2 = `
         SELECT c.*, u."login" as "userLogin"
@@ -245,12 +226,9 @@ export class PostsRepository {
             LEFT JOIN "Users" as u
             ON c."userId" = u."id"
             WHERE c."id" = $1
-            `
+            `;
 
-    const result = await this.dataSource.query(
-        query2, [
-          createData.id,
-        ]);
+    const result = await this.dataSource.query(query2, [createData.id]);
 
     return {
       id: result[0].id,

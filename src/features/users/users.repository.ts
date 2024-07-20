@@ -5,53 +5,26 @@ import { ObjectId } from 'mongodb';
 import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
 import { UsersViewModel } from './models/output/UsersViewModel';
 import { userMapper } from './mappers/mappers';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { User } from '../../db/entitys/user.entity';
 
 @Injectable()
 export class UsersRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
   ) {}
-  async createUser(createData: any): Promise<UsersViewModel> {
-    // const user = new this.userModel(createData);
-    // await user.save();
-    //
-    // return userMapper(user);
-    const query = `
-            INSERT INTO public."Users"(
-            "login", "email", "createdAt", "passwordHash", "passwordSalt", "id")
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING "login", "email", "createdAt", "id";
-            `
+  async createUser(newUserDto: User): Promise<UsersViewModel> {
+    const user = await this.usersRepository.save(newUserDto);
 
-    const user = await this.dataSource.query(
-        query,[
-          createData.accountData.login,
-          createData.accountData.email,
-          createData.accountData.createdAt,
-          createData.accountData.passwordHash,
-          createData.accountData.passwordSalt,
-          createData.accountData.id,
-        ]);
-
-    return userMapper(user[0]);
+    return userMapper(user);
   }
   async deleteUserById(id: string): Promise<boolean> {
-    const query = `
-            DELETE FROM public."Users"
-            WHERE "id" = $1 RETURNING id;
-            `
-    const result =await this.dataSource.query(
-        query,[
-          id,
-        ]);
+    const deleteUserById = await this.usersRepository.delete(id);
 
-    if(result[1] === 0){
-        return false
-    }
-
-    return true;
+    return !!deleteUserById.affected;
   }
 }

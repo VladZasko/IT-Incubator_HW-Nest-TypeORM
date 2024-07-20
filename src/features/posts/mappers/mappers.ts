@@ -1,6 +1,6 @@
-import {LikesStatus, PostsViewModel} from '../models/output/PostsViewModel';
-import {PostDBType} from '../../../db/schemes/posts.schemes';
-import {WithId} from 'mongodb';
+import { LikesStatus, PostsViewModel } from '../models/output/PostsViewModel';
+import { PostDBType } from '../../../db/schemes/posts.schemes';
+import { WithId } from 'mongodb';
 
 export const postQueryMapper = (
   postDb: any,
@@ -24,12 +24,12 @@ export const postQueryMapper = (
   // postDb.likesInfo.likes.reverse();
 
   const threeNewestUsers = likes
-      .filter((x) => x.postId === postDb.id)
-      .sort((a, b) => a.createdAt < b.createdAt ? 1 : -1)
-      .slice(0,3)
-      .map(x => ({addedAt: x.createdAt, userId: x.userId, login: x.login}))
+    .filter((x) => x.postId === postDb.id)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, 3)
+    .map((x) => ({ addedAt: x.createdAt, userId: x.userId, login: x.login }));
 
-  console.log(threeNewestUsers)
+  console.log(threeNewestUsers);
 
   return {
     id: postDb.id,
@@ -40,8 +40,8 @@ export const postQueryMapper = (
     blogName: postDb.blogName,
     createdAt: postDb.createdAt,
     extendedLikesInfo: {
-      likesCount:  +postDb.likecount,
-      dislikesCount:  +postDb.dislikecount,
+      likesCount: +postDb.likecount ?? 0,
+      dislikesCount: +postDb.dislikecount ?? 0,
       myStatus: postDb.userstatus ?? 'None',
       newestLikes: threeNewestUsers,
     },

@@ -13,17 +13,21 @@ import {
 } from '../../../db/schemes/token.schemes';
 import { Model } from 'mongoose';
 import { AuthQueryRepository } from '../auth.query.repository';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { RefreshTokenMeta } from '../../../db/entitys/refresh.token.meta.entity';
+import { AuthRepository } from '../auth.repository';
 
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private configService: ConfigService,
-    private authQueryRepository: AuthQueryRepository,
+    private authRepository: AuthRepository,
     @InjectDataSource()
     protected dataSource: DataSource,
+    @InjectRepository(RefreshTokenMeta)
+    private readonly refreshTokenMetaRepository: Repository<RefreshTokenMeta>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<any> {
@@ -62,18 +66,30 @@ export class RefreshTokenGuard implements CanActivate {
     //   deviceId: user.deviceId,
     // });
 
-    const query = `
-        SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
-            FROM public."RefreshTokenMeta"
-            WHERE "deviceId" = $1;
-        `
+    // const query = `
+    //     SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
+    //         FROM public."RefreshTokenMeta"
+    //         WHERE "deviceId" = $1;
+    //     `;
 
-    const refreshTokenMeta = await this.dataSource.query(
-        query,[
-          user.deviceId
-        ]);
+    const refreshTokenMeta = await this.refreshTokenMetaRepository.findOneBy({
+      deviceId: user.deviceId,
+    });
 
-    if (!refreshTokenMeta[0]) {
+    console.log(refreshTokenMeta);
+
+    if (!refreshTokenMeta) throw new UnauthorizedException();
+
+    // if (refreshTokenMeta) {
+    //   throw new UnauthorizedException([
+    //     {
+    //       message: 'Access Denied. No refresh token provided.',
+    //       field: 'refreshToken',
+    //     },
+    //   ]);
+    // }
+
+    if (refreshTokenMeta.issuedAt !== user.issuedAt) {
       throw new UnauthorizedException([
         {
           message: 'Access Denied. No refresh token provided.',
@@ -81,20 +97,11 @@ export class RefreshTokenGuard implements CanActivate {
         },
       ]);
     }
-
-    if (refreshTokenMeta[0]?.issuetAt !== user.issuedAt) {
-      throw new UnauthorizedException([
-        {
-          message: 'Access Denied. No refresh token provided.',
-          field: 'refreshToken',
-        },
-      ]);
-    }
-    if (refreshTokenMeta[0]?.issuetAt === user.issuedAt) {
-      request.user = await this.authQueryRepository.getUserById(
-        refreshTokenMeta[0]!.userId,
+    if (refreshTokenMeta.issuedAt === user.issuedAt) {
+      request.user = await this.authRepository.getUserById(
+        refreshTokenMeta.userId,
       );
-      request.refreshTokenMeta = refreshTokenMeta[0];
+      request.refreshTokenMeta = refreshTokenMeta;
       //return refreshTokenMeta;
       return true;
     }

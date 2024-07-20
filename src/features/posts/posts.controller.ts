@@ -28,8 +28,8 @@ import { UpdateLikesModule } from '../comments/models/input/UpdateLikesModule';
 import { ObjectId } from 'mongodb';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
-import {IdParamModel} from "./models/input/IdParamModel";
-import {validate as uuidValidate} from "uuid";
+import { IdParamModel } from './models/input/IdParamModel';
+import { validate as uuidValidate } from 'uuid';
 
 @Controller('posts')
 export class PostsController {
@@ -172,5 +172,4 @@ export class PostsController {
 
     return;
   }
-
 }

@@ -13,13 +13,16 @@ import {
   CommentDocument,
 } from '../../db/schemes/comments.schemes';
 import { commentQueryMapper } from '../comments/mappers/mappers';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Post } from '../../db/entitys/post.entity';
 @Injectable()
 export class PostsQueryRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
   ) {}
   async getAllPosts(sortData: QueryPostsModel, likeStatusData: string) {
     const pageNumber = sortData.pageNumber ?? 1;
@@ -47,11 +50,9 @@ export class PostsQueryRepository {
             ORDER BY "${sortBy}"  ${sortDirection}
             LIMIT ${pageSize}
             OFFSET ${(pageNumber - 1) * +pageSize}
-            `
+            `;
 
-
-    const posts = await this.dataSource.query(
-        query, [likeStatusData]);
+    const posts = await this.dataSource.query(query, [likeStatusData]);
 
     const query2 = `
             SELECT l.*, u."login" 
@@ -59,16 +60,15 @@ export class PostsQueryRepository {
             LEFT JOIN "Users" as u
             ON l."userId" = u."id"
             WHERE l."status" = 'Like'
-            `
+            `;
 
-    const likes = await this.dataSource.query(
-        query2,);
-
+    const likes = await this.dataSource.query(query2);
 
     const totalCount: number = await this.dataSource.query(
-        `
+      `
             SELECT COUNT(*) FROM "Posts"
-            `);
+            `,
+    );
 
     const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
 
@@ -78,10 +78,8 @@ export class PostsQueryRepository {
       pageSize: +pageSize,
       totalCount: +totalCount[0].count,
       //items: posts.map(postQueryMapper),
-      items: posts.map((posts) =>
-              postQueryMapper(posts, likes),
-          ),
-    }
+      items: posts.map((posts) => postQueryMapper(posts, likes)),
+    };
   }
   async getCommentByPostId(
     sortData: QueryCommentModule,
@@ -93,7 +91,7 @@ export class PostsQueryRepository {
     const sortBy = sortData.sortBy ?? 'createdAt';
     const sortDirection = sortData.sortDirection ?? 'desc';
 
-      const query = `
+    const query = `
             SELECT c.*, 
                     u."login" as "userLogin",
                     COALESCE(lc.like_count, 0) as likeCount,
@@ -114,31 +112,26 @@ export class PostsQueryRepository {
             ORDER BY "${sortBy}"  ${sortDirection}
             LIMIT ${pageSize}
             OFFSET ${(pageNumber - 1) * +pageSize}
-            `
+            `;
 
+    const comments = await this.dataSource.query(query, [id, likeStatusData]);
 
-      const comments = await this.dataSource.query(
-          query, [id, likeStatusData]);
-
-
-      const totalCount: number = await this.dataSource.query(
-          `
+    const totalCount: number = await this.dataSource.query(
+      `
             SELECT COUNT(*) FROM "Comments"
             WHERE "postId" = '${id}'
-            `);
+            `,
+    );
 
-      const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+    const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
 
-      return {
-          pagesCount,
-          page: +pageNumber,
-          pageSize: +pageSize,
-          totalCount: +totalCount[0].count,
-          items: comments.map((comment) =>
-              commentQueryMapper(comment),
-          ),
-      }
-
+    return {
+      pagesCount,
+      page: +pageNumber,
+      pageSize: +pageSize,
+      totalCount: +totalCount[0].count,
+      items: comments.map((comment) => commentQueryMapper(comment)),
+    };
   }
   async getPostById(
     id: string,
@@ -162,47 +155,44 @@ export class PostsQueryRepository {
             ) as lc ON p."id" = lc."postId"
             LEFT JOIN "Likes" as l ON p."id" = l."postId" AND l."userId" = $2
             WHERE p."id" = $1
-            `
+            `;
 
-      const query2 = `
+    const query2 = `
             SELECT l.*, u."login" 
             FROM public."Likes" as l
             LEFT JOIN "Users" as u
             ON l."userId" = u."id"
             WHERE l."status" = 'Like' AND l."postId" = $1
-            `
+            `;
 
-    const result = await this.dataSource.query(
-        query,[
-          id,
-          likeStatusData,
-        ]);
+    const result = await this.dataSource.query(query, [id, likeStatusData]);
 
-    const result2 = await this.dataSource.query(
-        query2,[ id ]);
+    const result2 = await this.dataSource.query(query2, [id]);
 
-    if(!result[0]) return null
+    if (!result[0]) return null;
 
-    return postQueryMapper(result[0],result2);
+    return postQueryMapper(result[0], result2);
   }
 
-  async getPostId(
-      id: string,
-  ): Promise<PostsViewModel | null> {
-    const query = `
-            SELECT p.*
-            FROM public."Posts" as p
-            WHERE p."id" = $1
-            `
+  async getPostId(id: string): Promise<Post | null> {
+    const queryBuilder = await this.postRepository
+      .createQueryBuilder('p')
+      .where('p.id = :postId', { postId: id })
+      .getOne();
+    // const query = `
+    //         SELECT p.*
+    //         FROM public."Posts" as p
+    //         WHERE p."id" = $1
+    //         `
+    //
+    //
+    // const result = await this.dataSource.query(
+    //     query,[
+    //       id,
+    //     ]);
+    //
+    // if(!result[0]) return null
 
-
-    const result = await this.dataSource.query(
-        query,[
-          id,
-        ]);
-
-    if(!result[0]) return null
-
-    return result[0];
+    return queryBuilder;
   }
 }

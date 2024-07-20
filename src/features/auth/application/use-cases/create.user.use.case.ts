@@ -11,6 +11,8 @@ import { Result } from '../../utils/result.type';
 import { AuthService } from '../auth.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AuthRepository } from '../../auth.repository';
+import { User } from '../../../../db/entitys/user.entity';
+import { EmailConfirmation } from '../../../../db/entitys/email.confirmatiom.entity';
 
 export class CreateUserCommand {
   constructor(public createData: CreateUserModel) {}
@@ -52,29 +54,30 @@ export class CreateUserUseCase implements ICommandHandler<CreateUserCommand> {
       passwordSalt,
     );
 
-    const newUser = {
-      login: command.createData.login,
-      email: command.createData.email,
-      createdAt: new Date().toISOString(),
-      passwordHash,
-      passwordSalt,
-      id: uuidv4(),
-    };
+    const newUser = new User();
 
-    const emailConfirmation = {
-      confirmationCode: uuidv4(),
-      expirationDate: add(new Date(), {
-        minutes: 15,
-      }),
-      resendingCode: new Date(),
-      isConfirmed: false,
-      id: uuidv4(),
-      userId: newUser.id,
-    };
+    newUser.id = uuidv4();
+    newUser.login = command.createData.login;
+    newUser.email = command.createData.email;
+    newUser.createdAt = new Date().toISOString();
+    newUser.passwordHash = passwordHash;
+    newUser.passwordSalt = passwordSalt;
+
+    const emailConfirmation = new EmailConfirmation();
+
+    emailConfirmation.id = uuidv4();
+    emailConfirmation.confirmationCode = uuidv4();
+    emailConfirmation.expirationDate = add(new Date(), {
+      minutes: 15,
+    }).toISOString();
+    emailConfirmation.isConfirmed = false;
+    emailConfirmation.userId = newUser.id;
+
     const createResult = await this.authRepository.createUser(
       newUser,
       emailConfirmation,
     );
+
     try {
       const emailAdapterDto: EmailAdapterDto = {
         email: newUser.email,
@@ -85,6 +88,7 @@ export class CreateUserUseCase implements ICommandHandler<CreateUserCommand> {
       console.error(error);
       await this.authRepository.deleteUserById(createResult.id);
     }
+
     return {
       resultCode: ResultCode.Success,
       data: createResult,

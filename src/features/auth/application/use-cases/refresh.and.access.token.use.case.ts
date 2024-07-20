@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserModel } from '../../../users/models/input/CreateUserModel';
-import {AuthRepository} from "../../auth.repository";
+import { AuthRepository } from '../../auth.repository';
+import { RefreshTokenMeta } from '../../../../db/entitys/refresh.token.meta.entity';
 
 export class RefreshAndAccessTokenCommand {
   constructor(public createData: CreateUserModel) {}
@@ -36,12 +36,30 @@ export class RefreshAndAccessTokenUseCase {
     });
   }
 
-  async createRefreshTokensMeta(refreshTokenDto: any) {
-    return this.authRepository.createRefreshTokensMeta(refreshTokenDto);
+  async createRefreshTokensMeta(dataRefreshToken: any) {
+    const newRefreshTokenMeta = new RefreshTokenMeta();
+
+    newRefreshTokenMeta.id = dataRefreshToken.id;
+    newRefreshTokenMeta.deviceName = dataRefreshToken.deviseName;
+    newRefreshTokenMeta.userId = dataRefreshToken.userId;
+    newRefreshTokenMeta.issuedAt = dataRefreshToken.issuedAt;
+    newRefreshTokenMeta.deviceId = dataRefreshToken.deviceId;
+    newRefreshTokenMeta.ip = dataRefreshToken.ip;
+
+    return await this.authRepository.createRefreshTokensMeta(
+      newRefreshTokenMeta,
+    );
   }
 
   async updateRefreshTokensMeta(refreshTokenUpdateDto: any) {
-    return this.authRepository.updateRefreshTokensMeta(refreshTokenUpdateDto);
+    const updateRefreshTokensMeta =
+      await this.authRepository.findRefreshTokensMeta(
+        refreshTokenUpdateDto.deviceId,
+      );
+
+    updateRefreshTokensMeta!.issuedAt = refreshTokenUpdateDto.issuedAt;
+
+    return this.authRepository.updateRefreshTokensMeta(updateRefreshTokensMeta);
   }
   async deleteRefreshTokensMeta(deviceId: string) {
     return this.authRepository.deleteRefreshTokensMeta(deviceId);

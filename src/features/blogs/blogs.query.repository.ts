@@ -5,134 +5,175 @@ import { BlogsViewModel } from './models/output/BlogsViewModel';
 import { ObjectId } from 'mongodb';
 import { postQueryMapper } from '../posts/mappers/mappers';
 import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Blog } from '../../db/entitys/blog.entity';
+import { Post } from '../../db/entitys/post.entity';
+import { Like } from '../../db/entitys/like.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogsQueryRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(Blog)
+    private readonly blogRepository: Repository<Blog>,
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+    @InjectRepository(Like)
+    private readonly likeRepository: Repository<Like>,
   ) {}
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'desc';
+    const sortDirection = term.sortDirection ?? 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-    let filter = ``;
+    const queryBuilder = this.blogRepository.createQueryBuilder('b');
 
     if (searchNameTerm) {
-      filter = `WHERE "name" ILIKE '%${searchNameTerm}%'`;
+      queryBuilder.where('LOWER(b.name) LIKE :nameTerm', {
+        nameTerm: `%${searchNameTerm.toLowerCase()}%`,
+      });
     }
 
-    const query = `
-            SELECT *
-            FROM public."Blogs"
-            ${filter}
-            ORDER BY "${sortBy}" COLLATE "C" ${sortDirection}
-            LIMIT ${pageSize}
-            OFFSET ${(pageNumber - 1) * +pageSize}
-            `
+    const blogs = await queryBuilder
+      .orderBy(`b.${sortBy}`, sortDirection)
+      .offset((pageNumber - 1) * pageSize)
+      .limit(pageSize)
+      .getMany();
 
-    const blogs = await this.dataSource.query(
-        query);
+    const totalCount: number = await queryBuilder.getCount();
 
-    const totalCount: number = await this.dataSource.query(
-        `
-            SELECT COUNT(*) FROM "Blogs"
-            ${filter}
-            `);
-
-    const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+    const pagesCount = Math.ceil(+totalCount / +pageSize);
 
     return {
       pagesCount,
       page: +pageNumber,
       pageSize: +pageSize,
-      totalCount: +totalCount[0].count,
+      totalCount: +totalCount,
       items: blogs,
     };
   }
   async getPostsByBlogId(
     term: QueryPostsModel,
     blogId: string,
-    likeStatusData?: string,
+    userId?: string,
   ) {
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'desc';
+    const sortDirection = term.sortDirection ?? 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-      const query = `
-            SELECT p.*, 
-                    b."name" as "blogName",
-                    COALESCE(lc.like_count, 0) as likeCount,
-                    COALESCE(lc.dislike_count, 0) as dislikeCount,
-            l."status" as userStatus
-            FROM public."Posts" as p
-            LEFT JOIN "Blogs" as b
-            ON p."blogId" = b."id"
-            LEFT JOIN (
-            SELECT "postId", 
-                 COUNT(CASE WHEN "status" = 'Like' THEN 1 END) as like_count,
-           COUNT(CASE WHEN "status" = 'Dislike' THEN 1 END) as dislike_count
-                FROM "Likes"
-                GROUP BY "postId"
-            ) as lc ON p."id" = lc."postId"
-            LEFT JOIN "Likes" as l ON p."id" = l."postId" AND l."userId" = $2
-            WHERE b."id" = $1 
-            ORDER BY "${sortBy}"  ${sortDirection}
-            LIMIT ${pageSize}
-            OFFSET ${(pageNumber - 1) * +pageSize}
-            `
+    const queryBuilder = await this.postRepository
+      .createQueryBuilder('p')
+      .select([
+        'p',
+        'b.name as blogName',
+        'COALESCE(lc.like_count, 0) as likeCount',
+        'COALESCE(lc.dislike_count, 0) as dislikeCount',
+        'l.status as userStatus',
+      ])
+      .leftJoin('p.blog', 'b')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'l.postId as postId',
+              "COUNT(CASE WHEN l.status = 'Like' THEN 1 END) as like_count",
+              "COUNT(CASE WHEN l.status = 'Dislike' THEN 1 END) as dislike_count",
+            ])
+            .from(Like, 'l')
+            .groupBy('l.postId'),
+        'lc',
+        'p.id = lc.postId',
+      )
+      .leftJoin('Like', 'l', 'p.id = l.postId AND l.userId = :userId', {
+        userId,
+      })
+      .where('b.id = :blogId', { blogId })
+      .orderBy(`p.${sortBy}`, sortDirection)
+      .limit(pageSize)
+      .offset((pageNumber - 1) * pageSize)
+      .getMany();
 
+    const queryBuilder3 = this.postRepository
+      .createQueryBuilder('p')
+      // .select([
+      //   'p',
+      //   'b.name as blogName',
+      //   'COALESCE(lc.like_count, 0) as likeCount',
+      //   'COALESCE(lc.dislike_count, 0) as dislikeCount',
+      //   'l.status as userStatus',
+      // ])
+      .addSelect((qb) => {
+        return qb
+          .select('b.name', 'p_blogName')
+          .from('Blog', 'b')
+          .where('b.id = p.blogId');
+      })
+      .addSelect((qb) => {
+        return qb
+          .select('COUNT(*)', 'p_likesCount')
+          .from('Like', 'l')
+          .where('l.postId = p.id')
+          .andWhere("l.status = 'Like'");
+      })
+      .addSelect((qb) => {
+        return qb
+          .select('COUNT(*)', 'p_dislikeCount')
+          .from('Like', 'l')
+          .where('l.postId = p.id')
+          .andWhere("l.status = 'Dislike'");
+      });
+    // .leftJoin('Like', 'l', 'p.id = l.postId AND l.userId = :userId', {
+    //   userId,
+    // })
+    // .where('b.id = :blogId', { blogId })
+    // .orderBy(`p.${sortBy}`, sortDirection)
+    // .limit(pageSize)
+    // .offset((pageNumber - 1) * pageSize);
 
-      const posts = await this.dataSource.query(
-          query, [blogId,likeStatusData]);
+    console.log(queryBuilder);
+    console.log('newTest');
+    console.log(queryBuilder3.getSql());
 
-      const query2 = `
-            SELECT l.*, u."login" 
-            FROM public."Likes" as l
-            LEFT JOIN "Users" as u
-            ON l."userId" = u."id"
-            WHERE l."status" = 'Like'
-            `
+    const post2 = await queryBuilder3.getRawMany();
 
-      const likes = await this.dataSource.query(
-          query2);
+    console.log(post2);
 
+    const queryBuilder2 = await this.likeRepository
+      .createQueryBuilder('l')
+      .select(['l', 'u.login'])
+      .leftJoin('User', 'u', 'l.userId = u.id')
+      .where('l.status = :status', { status: 'Like' })
+      .getMany();
 
-      const totalCount: number = await this.dataSource.query(
-          `
-            SELECT COUNT(*) FROM "Posts"
-            WHERE "blogId" = '${blogId}'
-            `);
+    console.log(queryBuilder2);
 
-      const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+    const totalCount: number = await this.postRepository
+      .createQueryBuilder('p')
+      .getCount();
 
-      return {
-          pagesCount,
-          page: +pageNumber,
-          pageSize: +pageSize,
-          totalCount: +totalCount[0].count,
-          items: posts.map((posts) =>
-              postQueryMapper(posts, likes),
-          ),
-      }
+    const pagesCount = Math.ceil(+totalCount / +pageSize);
+
+    return {
+      pagesCount,
+      page: +pageNumber,
+      pageSize: +pageSize,
+      totalCount: +totalCount,
+      items: queryBuilder.map((posts) => postQueryMapper(posts, queryBuilder2)),
+    };
   }
   async getBlogById(id: string): Promise<BlogsViewModel | null> {
     const query = `
             SELECT *
             FROM public."Blogs"
             WHERE "id" = $1
-            `
+            `;
 
-    const result = await this.dataSource.query(
-        query, [
-          id,
-        ]);
+    const result = await this.dataSource.query(query, [id]);
 
     return result[0];
   }

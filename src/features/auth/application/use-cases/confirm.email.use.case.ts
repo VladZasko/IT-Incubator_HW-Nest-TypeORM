@@ -1,7 +1,6 @@
-import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {AuthRepository} from "../../auth.repository";
-import {CreatePostBlogModel} from "../../models/input/ConfirmCodeModel";
+import { AuthRepository } from '../../auth.repository';
+import { EmailConfirmation } from '../../../../db/entitys/email.confirmatiom.entity';
 export class ConfirmEmailCommand {
   constructor(public code: string) {}
 }
@@ -13,14 +12,17 @@ export class ConfirmEmailUseCase
   constructor(protected authRepository: AuthRepository) {}
 
   async execute(command: ConfirmEmailCommand): Promise<boolean> {
-    const user = await this.authRepository.findUserByConfirmationCode(
-      command.code,
-    );
-    if (!user) return false;
-    if (user.isConfirmed) return false;
-    if (user.confirmationCode !== command.code) return false;
-    if (user.expirationDate < new Date()) return false;
+    const emailConfirmation: EmailConfirmation | null =
+      await this.authRepository.findUserByConfirmationCode(command.code);
 
-    return await this.authRepository.updateConfirmation(user.userId);
+    if (!emailConfirmation) return false;
+    if (emailConfirmation.isConfirmed) return false;
+    if (emailConfirmation.confirmationCode !== command.code) return false;
+    if (emailConfirmation.expirationDate < new Date().toISOString())
+      return false;
+
+    emailConfirmation.isConfirmed = true;
+
+    return this.authRepository.updateConfirmation(emailConfirmation);
   }
 }

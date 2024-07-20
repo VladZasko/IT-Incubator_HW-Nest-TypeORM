@@ -1,17 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { CreateUserModel } from './models/input/CreateUserModel';
-import {
-  UsersRepoViewModel,
-  UsersViewModel,
-} from './models/output/UsersViewModel';
+import { UsersViewModel } from './models/output/UsersViewModel';
 import * as bcrypt from 'bcrypt';
 import { UsersQueryRepository } from './users.query.repository';
-import { userDBMapper } from './mappers/mappers';
-import { LoginAuthUserModel } from '../auth/models/input/LoginAuthUserModel';
 import { ResultCode } from './utils/result-code';
 import { ERRORS_MESSAGES } from '../../utils/errors';
 import { v4 as uuidv4 } from 'uuid';
+import { User } from '../../db/entitys/user.entity';
 
 export type Result<T> = {
   resultCode: ResultCode;
@@ -31,7 +27,6 @@ export class UsersService {
   async createUser(
     createData: CreateUserModel,
   ): Promise<Result<UsersViewModel | null>> {
-
     const foundUser = await this.usersQueryRepository.findByLoginOrEmail({
       login: createData.login,
       email: createData.email,
@@ -58,44 +53,21 @@ export class UsersService {
       passwordSalt,
     );
 
-    const newUser = {
-      accountData: {
-        login: createData.login,
-        email: createData.email,
-        createdAt: new Date().toISOString(),
-        passwordHash,
-        passwordSalt,
-        id: uuidv4(),
-      },
-    };
+    const newUser = new User();
+
+    newUser.id = uuidv4();
+    newUser.login = createData.login;
+    newUser.email = createData.email;
+    newUser.createdAt = new Date().toISOString();
+    newUser.passwordHash = passwordHash;
+    newUser.passwordSalt = passwordSalt;
+
     const createResult = await this.usersRepository.createUser(newUser);
 
     return {
       resultCode: ResultCode.Success,
       data: createResult,
     };
-  }
-
-  async checkCredentials(
-    checkCredentialsDto: LoginAuthUserModel,
-  ): Promise<UsersRepoViewModel | null> {
-    const user = await this.usersQueryRepository.findByLoginOrEmail(
-      checkCredentialsDto.loginOrEmail,
-    );
-    if (!user) {
-      return null;
-    }
-
-    const passwordHash = await this._generateHash(
-      checkCredentialsDto.password,
-      user.accountData.passwordHash,
-    );
-
-    if (user.accountData.passwordHash !== passwordHash) {
-      return null;
-    }
-
-    return userDBMapper(user);
   }
 
   async _generateHash(password: string, salt: string) {

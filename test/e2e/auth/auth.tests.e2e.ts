@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { RouterPaths } from '../../../src/routerPaths';
 import { ERRORS_MESSAGES } from '../../../src/utils/errors';
-import {UsersTestManager} from '../users/utils/usersTestManager';
+import { UsersTestManager } from '../users/utils/usersTestManager';
 import {
   dataTestUserCreate01,
   dataTestUserCreate02,
@@ -13,8 +13,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../../src/app.module';
 import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
 import { AuthTestManager } from './utils/authTestManager';
-import {EmailAdapter} from "../../../src/features/auth/adapters/email-adapter";
-import {applyAppSettings} from "../../../src/settings/apply.app.settings";
+import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
+import { applyAppSettings } from '../../../src/settings/apply.app.settings';
 
 describe('/auth', () => {
   let app: INestApplication;
@@ -29,19 +29,19 @@ describe('/auth', () => {
       imports: [AppModule],
     }).compile();
 
-
     app = moduleFixture.createNestApplication();
-    applyAppSettings(app)
+    applyAppSettings(app);
     await app.init();
 
     httpServer = app.getHttpServer();
 
     emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
-    authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+    authQueryRepository =
+      moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
     authTestManager = new AuthTestManager(
-        authQueryRepository,
-        app,
-        emailAdapter,
+      authQueryRepository,
+      app,
+      emailAdapter,
     );
 
     usersTestManager = new UsersTestManager(app);
@@ -245,7 +245,11 @@ describe('/auth', () => {
       //   confirmationCode: ' 123',
       // },
     };
-    await authTestManager.userEmailConfirmation(data, HttpStatus.BAD_REQUEST, 1);
+    await authTestManager.userEmailConfirmation(
+      data,
+      HttpStatus.BAD_REQUEST,
+      1,
+    );
   });
 
   it('should return 400 email has already been confirmed.', async () => {

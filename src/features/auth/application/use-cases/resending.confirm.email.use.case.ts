@@ -25,20 +25,27 @@ export class ResendingConfirmEmailUseCase
     if (!user) return false;
     //if (user.isConfirmed) return false;
 
-    const newConfirmationCode = uuidv4();
-    const newExpirationDate = add(new Date(), {
-      minutes: 15,
-    });
+    // const newConfirmationCode = uuidv4();
+    // const newExpirationDate = add(new Date(), {
+    //   minutes: 15,
+    // });
 
-    const result = await this.authRepository.newConfirmationCode(
-      user.id,
-      newExpirationDate,
-      newConfirmationCode,
-    );
+    const newConfirmationCode =
+      await this.authRepository.findConfirmationCodeUserByUserId(user.id);
+
+    if (!newConfirmationCode) return false;
+
+    newConfirmationCode.confirmationCode = uuidv4();
+    newConfirmationCode.expirationDate = add(new Date(), {
+      minutes: 15,
+    }).toISOString();
+
+    const result =
+      await this.authRepository.newConfirmationCode(newConfirmationCode);
 
     const resendingConfirmEmailDto: EmailAdapterDto = {
       email: user.email,
-      newCode: newConfirmationCode,
+      newCode: newConfirmationCode.confirmationCode,
     };
     try {
       await this.emailAdapter.sendNewCode(resendingConfirmEmailDto);

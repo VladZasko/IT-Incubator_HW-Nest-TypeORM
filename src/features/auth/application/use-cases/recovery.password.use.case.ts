@@ -5,7 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {AuthRepository} from "../../auth.repository";
+import { AuthRepository } from '../../auth.repository';
+import { User } from '../../../../db/entitys/user.entity';
+import { PasswordRecovery } from '../../../../db/entitys/password.recovery.entity';
 
 export class RecoveryPasswordCommand {
   constructor(public email: string) {}
@@ -20,23 +22,25 @@ export class RecoveryPasswordUseCase
   ) {}
 
   async execute(command: RecoveryPasswordCommand): Promise<boolean> {
-    const user = await this.authRepository.findByEmail(command.email);
+    const user: User | null = await this.authRepository.findByEmail(
+      command.email,
+    );
     if (!user) return true;
 
-    const passwordRecoveryCode = uuidv4();
-    const expirationDate = add(new Date(), {
-      minutes: 15,
-    });
+    const passwordRecovery = new PasswordRecovery();
 
-    const result = await this.authRepository.passwordRecovery(
-      user!.id,
-      passwordRecoveryCode,
-      expirationDate,
-    );
+    passwordRecovery.id = uuidv4();
+    passwordRecovery.recoveryCode = uuidv4();
+    passwordRecovery.expirationDate = add(new Date(), {
+      minutes: 15,
+    }).toISOString();
+    passwordRecovery.userId = user.id;
+
+    const result = await this.authRepository.passwordRecovery(passwordRecovery);
 
     const sendRecoveryCodeDto: EmailAdapterDto = {
       email: user.email,
-      recoveryCode: passwordRecoveryCode,
+      recoveryCode: passwordRecovery.recoveryCode,
     };
     try {
       await this.emailAdapter.sendRecoveryCode(sendRecoveryCodeDto);

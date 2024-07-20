@@ -14,7 +14,7 @@ export const securityDevicesMapper = (
 };
 
 export const securityDevicesRepositoryMapper = (
-  securityDevicesDb: any
+  securityDevicesDb: any,
 ): RefreshTokensMetaDBType => {
   return {
     ip: securityDevicesDb.ip,

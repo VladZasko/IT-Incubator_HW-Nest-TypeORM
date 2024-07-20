@@ -1,22 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { ObjectId } from 'mongodb';
-import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
 import { QueryUserModel } from './models/input/QueryUserModule';
-import {
-  UsersViewModel,
-  UsersViewModelGetAllUsers,
-} from './models/output/UsersViewModel';
+import { UsersViewModelGetAllUsers } from './models/output/UsersViewModel';
 import { userMapper } from './mappers/mappers';
-import {LoginOrEmailModel} from "../auth/models/input/LoginAuthUserModel";
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { LoginOrEmailModel } from '../auth/models/input/LoginAuthUserModel';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { User } from '../../db/entitys/user.entity';
 @Injectable()
 export class UsersQueryRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
   ) {}
   async getAllUsers(
     sortData: QueryUserModel,
@@ -28,52 +24,42 @@ export class UsersQueryRepository {
     const pageNumber = sortData.pageNumber ?? 1;
     const pageSize = sortData.pageSize ?? 10;
 
-    let filter = `WHERE "login" LIKE '%%' AND "email" LIKE '%%'`;
+    const queryBuilder = this.usersRepository.createQueryBuilder('u');
 
-    if (searchLoginTerm) {
-      filter = `WHERE LOWER("login") LIKE '%${searchLoginTerm.toLowerCase()}%'`;
-    }
-    if (searchEmailTerm) {
-      filter = `WHERE LOWER("email") LIKE '%${searchEmailTerm.toLowerCase()}%'`;
-    }
     if (searchLoginTerm && searchEmailTerm) {
-      filter = `WHERE LOWER("login") LIKE '%${searchLoginTerm.toLowerCase()}%' OR LOWER("email") LIKE '%${searchEmailTerm.toLowerCase()}%'`;
+      queryBuilder.where(
+        'LOWER(u.login) LIKE :loginTerm OR LOWER(u.email) LIKE :emailTerm',
+        {
+          loginTerm: `%${searchLoginTerm.toLowerCase()}%`,
+          emailTerm: `%${searchEmailTerm.toLowerCase()}%`,
+        },
+      );
+    } else if (searchLoginTerm) {
+      queryBuilder.where('LOWER(u.login) LIKE :loginTerm', {
+        loginTerm: `%${searchLoginTerm.toLowerCase()}%`,
+      });
+    } else if (searchEmailTerm) {
+      queryBuilder.where('LOWER(u.email) LIKE :emailTerm', {
+        emailTerm: `%${searchEmailTerm.toLowerCase()}%`,
+      });
     }
 
-    const query = `
-            SELECT "login", "email", "createdAt", "passwordHash", "passwordSalt", "id"
-            FROM public."Users"
-            ${filter}
-            ORDER BY "${sortBy}"  ${sortDirection}
-            LIMIT ${pageSize}
-            OFFSET ${(pageNumber - 1) * +pageSize}
-            `
+    const users = await queryBuilder
+      .orderBy(`u.${sortBy}`, sortDirection)
+      .offset((pageNumber - 1) * pageSize)
+      .limit(pageSize)
+      .getMany();
 
-    const result = await this.dataSource.query(
-        query);
+    const totalCount: number = await queryBuilder.getCount();
 
-
-    // const users = await this.userModel
-    //   .find(filter)
-    //   .sort([[`accountData.` + sortBy, sortDirection]])
-    //   .skip((pageNumber - 1) * +pageSize)
-    //   .limit(+pageSize)
-    //   .lean();
-
-    const totalCount: number = await this.dataSource.query(
-        `
-            SELECT COUNT(*) FROM "Users"
-            ${filter}
-            `);
-
-    const pagesCount: number = Math.ceil(+totalCount[0].count / +pageSize);
+    const pagesCount: number = Math.ceil(+totalCount / +pageSize);
 
     return {
       pagesCount,
       page: +pageNumber,
       pageSize: +pageSize,
-      totalCount: +totalCount[0].count,
-      items: result.map(userMapper),
+      totalCount: +totalCount,
+      items: users.map((u) => userMapper(u)),
     };
   }
   // async getUserById(id: string): Promise<UsersViewModel | null> {
@@ -94,22 +80,30 @@ export class UsersQueryRepository {
   //   });
   // }
 
-  async findByLoginOrEmail(createData: any) {
-    const query = `
-            SELECT *
-            FROM "Users" as u
-            WHERE "login" like $1 OR "email" like $2;
-            `
-
-    const findByLoginOrEmail = await this.dataSource.query(
-        query,[
-          createData.login,
-          createData.email,
-        ]);
-
-    console.log(findByLoginOrEmail[0])
-
-    return findByLoginOrEmail[0];
-
+  async findByLoginOrEmail(
+    loginOrEmailDto: LoginOrEmailModel,
+  ): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: [
+        { email: loginOrEmailDto.email },
+        { login: loginOrEmailDto.login },
+      ],
+    });
   }
+  // async findByLoginOrEmail(createData: any) {
+  //   const query = `
+  //           SELECT *
+  //           FROM "Users" as u
+  //           WHERE "login" like $1 OR "email" like $2;
+  //           `;
+  //
+  //   const findByLoginOrEmail = await this.dataSource.query(query, [
+  //     createData.login,
+  //     createData.email,
+  //   ]);
+  //
+  //   console.log(findByLoginOrEmail[0]);
+  //
+  //   return findByLoginOrEmail[0];
+  // }
 }

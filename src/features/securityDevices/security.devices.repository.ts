@@ -1,65 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import {
-  RefreshTokensMetaDBType,
-  RefreshTokensMetaDocument,
-} from '../../db/schemes/token.schemes';
-import { securityDevicesRepositoryMapper } from './mappers/mappers';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
+import { RefreshTokenMeta } from '../../db/entitys/refresh.token.meta.entity';
 
 @Injectable()
 export class SecurityDevicesRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(RefreshTokenMeta)
+    private readonly refreshTokenMetaRepository: Repository<RefreshTokenMeta>,
   ) {}
-  async getDevice(deviceId: string): Promise<RefreshTokensMetaDBType | null> {
-    const query = `
-    SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
-        FROM public."RefreshTokenMeta"
-        WHERE "deviceId" = $1
-    `
-    const result = await this.dataSource.query(
-        query,[
-          deviceId
-        ]);
-
-    if (!result[0]) {
-      return null;
-    }
-
-    return securityDevicesRepositoryMapper(result[0]);
+  async getDevice(deviceId: string): Promise<RefreshTokenMeta | null> {
+    return this.refreshTokenMetaRepository.findOneBy({
+      deviceId: deviceId,
+    });
   }
 
-  async deleteDevice(deleteData: any): Promise<boolean> {
-    const query = `
-        DELETE FROM public."RefreshTokenMeta"
-            WHERE "deviceId" = $1
-            `
+  async deleteDevice(deviceId: string): Promise<boolean> {
+    const deleteRefreshTokensMeta =
+      await this.refreshTokenMetaRepository.delete({ deviceId: deviceId });
 
-    await this.dataSource.query(
-        query,[
-          deleteData.deviceId,
-        ]);
-
-      return true;
-
+    return !!deleteRefreshTokensMeta.affected;
   }
 
   async deleteAllDevice(deleteData: any): Promise<boolean> {
-    const query = `
-        DELETE FROM public."RefreshTokenMeta"
-        WHERE "userId" = $1 AND "deviceId" != $2;
-            `
+    const deleteRefreshTokensMeta =
+      await this.refreshTokenMetaRepository.delete({
+        userId: deleteData.userId,
+        deviceId: Not(deleteData.deviceId),
+      });
 
-    await this.dataSource.query(
-        query, [
-          deleteData.userId,
-          deleteData.deviceId,
-        ]);
-
-    return true;
+    return !!deleteRefreshTokensMeta.affected;
   }
 }

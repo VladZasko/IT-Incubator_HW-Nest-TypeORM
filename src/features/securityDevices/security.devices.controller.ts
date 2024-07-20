@@ -15,7 +15,7 @@ import { RefreshTokenGuard } from '../auth/guards/refresh-token.guard';
 import { SecurityDevicesService } from './security.devices.servis';
 import { SecurityDevicesRepository } from './security.devices.repository';
 import { SecurityDevicesQueryRepository } from './security.devices.query.repository';
-import {DeviceIdModel} from "./models/DeviceIdModel";
+import { DeviceIdModel } from './models/DeviceIdModel';
 
 @UseGuards(RefreshTokenGuard)
 @Controller('security')
@@ -44,7 +44,9 @@ export class SecurityDevicesController {
   @Delete('devices/:deviceId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteDevice(@Request() req, @Param() deviceId: DeviceIdModel) {
-    const session = await this.securityDevicesRepository.getDevice(deviceId.deviceId);
+    const session = await this.securityDevicesRepository.getDevice(
+      deviceId.deviceId,
+    );
 
     if (!session) {
       throw new NotFoundException([
@@ -56,11 +58,13 @@ export class SecurityDevicesController {
         { message: 'not a trusted user', field: 'userId' },
       ]);
     }
-    const data = {
-      userId: req.refreshTokenMeta!.userId,
-      deviceId: deviceId.deviceId,
-    };
-    const deleteDevice = await this.securityDevicesService.deleteDevice(data);
+    // const data = {
+    //   userId: req.refreshTokenMeta!.userId,
+    //   deviceId: deviceId.deviceId,
+    // };
+    const deleteDevice = await this.securityDevicesService.deleteDevice(
+      deviceId.deviceId,
+    );
 
     if (!deleteDevice) {
       throw new NotFoundException([

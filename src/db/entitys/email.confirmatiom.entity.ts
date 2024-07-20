@@ -20,7 +20,7 @@ export class EmailConfirmation {
   confirmationCode: string;
 
   @Column()
-  isConfirmed: string;
+  isConfirmed: boolean;
 
   @Column()
   expirationDate: string;

@@ -1,211 +1,109 @@
-import {Injectable, Scope} from '@nestjs/common';
-import {BlogDBType} from '../../db/schemes/blogs.schemes';
-import {UpdateBlogModel} from './models/input/UpdateBlogModule';
-import {CreateBlogReposModel} from './models/input/CreateBlogModel';
-import {CreatePostBlogRepoModel} from './models/input/CreatePostByBlogModel';
-import {LikesStatus, PostsViewModel} from '../posts/models/output/PostsViewModel';
-import {BlogsViewModel} from './models/output/BlogsViewModel';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
-import {BlogIdModel} from "./models/input/BlogIdModel";
-import {UpdatePostByBlogModel} from "./models/input/UpdatePostByBlogModel";
+import { Injectable, Scope } from '@nestjs/common';
+import { BlogDBType } from '../../db/schemes/blogs.schemes';
+import { UpdateBlogModel } from './models/input/UpdateBlogModule';
+import { CreateBlogReposModel } from './models/input/CreateBlogModel';
+import { CreatePostBlogRepoModel } from './models/input/CreatePostByBlogModel';
+import {
+  LikesStatus,
+  PostsViewModel,
+} from '../posts/models/output/PostsViewModel';
+import { BlogsViewModel } from './models/output/BlogsViewModel';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
+import { BlogIdModel } from './models/input/BlogIdModel';
+import { UpdatePostByBlogModel } from './models/input/UpdatePostByBlogModel';
+import { RefreshTokenMeta } from '../../db/entitys/refresh.token.meta.entity';
+import { Blog } from '../../db/entitys/blog.entity';
+import { Post } from '../../db/entitys/post.entity';
 
 @Injectable({ scope: Scope.DEFAULT })
 export class BlogsSaRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(Blog)
+    private readonly blogRepository: Repository<Blog>,
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
   ) {}
-  async createPostBlog(
-    createData: CreatePostBlogRepoModel,
-  ): Promise<PostsViewModel> {
-      const query = `
-            INSERT INTO public."Posts"(
-            id, title, "shortDescription", content, "blogId", "createdAt")
-            VALUES ($1, $2, $3, $4, $5, $6);
-            `
+  async createPostBlog(createData: Post): Promise<PostsViewModel> {
+    await this.postRepository.save(createData);
 
-      await this.dataSource.query(
-          query,[
-              createData.id,
-              createData.title,
-              createData.shortDescription,
-              createData.content,
-              createData.blogId,
-              createData.createdAt,
-          ]);
-
-      const query2 = `
-        SELECT p.*, b."name" as "blogName"
-            FROM public."Posts" as p
-            LEFT JOIN "Blogs" as b
-            ON p."blogId" = b."id"
-            WHERE p."id" = $1
-            `
-
-      const result = await this.dataSource.query(
-          query2,[
-              createData.id,
-          ]);
+    const post = await this.postRepository
+      .createQueryBuilder('p')
+      .leftJoinAndSelect('p.blog', 'b')
+      .where('p.id = :postId', { postId: createData.id })
+      .getOne();
 
     return {
-        id: result[0].id,
-        title: result[0].title,
-        shortDescription: result[0].shortDescription,
-        content: result[0].content,
-        blogId: result[0].blogId,
-        blogName: result[0].blogName,
-        createdAt: result[0].createdAt,
-        extendedLikesInfo: {
-            likesCount: 0,
-            dislikesCount: 0,
-            myStatus: LikesStatus.None,
-            newestLikes: [],
-        },
+      id: post!.id,
+      title: post!.title,
+      shortDescription: post!.shortDescription,
+      content: post!.content,
+      blogId: post!.blogId,
+      blogName: post!.blog.name,
+      createdAt: post!.createdAt,
+      extendedLikesInfo: {
+        likesCount: 0,
+        dislikesCount: 0,
+        myStatus: LikesStatus.None,
+        newestLikes: [],
+      },
     };
   }
-  async getPostByBlog(id: BlogIdModel): Promise<BlogDBType | null> {
-      const query = `
-            SELECT *
-            FROM public."Posts"
-            WHERE "id" = $1 and "blogId" = $2
-            `
-
-      const result = await this.dataSource.query(
-          query,[
-              id.postId,
-              id.blogId,
-          ]);
-
-      return result[0];
+  async getPostByBlog(id: BlogIdModel): Promise<Post | null> {
+    return this.postRepository.findOne({
+      where: [{ id: id.postId }, { blogId: id.blogId }],
+    });
   }
 
-    async getBlog(id: string): Promise<BlogDBType | null> {
-        const query = `
-            SELECT *
-            FROM public."Blogs"
-            WHERE "id" = $1
-            `
+  async getBlog(id: string): Promise<Blog | null> {
+    return this.blogRepository.findOneBy({
+      id: id,
+    });
+  }
 
-        const result = await this.dataSource.query(
-            query,[
-                id,
-            ]);
-
-        return result[0];
-    }
-
-    async getPost(id: string): Promise<BlogDBType | null> {
-        const query = `
+  async getPost(id: string): Promise<BlogDBType | null> {
+    const query = `
             SELECT *
             FROM public."Posts"
             WHERE "id" = $1
-            `
+            `;
 
-        const result = await this.dataSource.query(
-            query,[
-                id,
-            ]);
+    const result = await this.dataSource.query(query, [id]);
 
-        return result[0];
-    }
-  async createBlog(
-    createBlogDto: CreateBlogReposModel,
-  ): Promise<BlogsViewModel> {
-    const query = `
-            INSERT INTO public."Blogs"(
-            id, name, description, "websiteUrl", "isMembership", "createdAt")
-            VALUES ($1, $2, $3, $4, $5, $6);
-            `
-
-    await this.dataSource.query(
-        query,[
-          createBlogDto.id,
-          createBlogDto.name,
-          createBlogDto.description,
-          createBlogDto.websiteUrl,
-          createBlogDto.isMembership,
-          createBlogDto.createdAt,
-        ]);
-
-    return createBlogDto;
+    return result[0];
   }
-  async updateBlog(
-    id: string,
-    updateBlogDto: UpdateBlogModel,
-  ): Promise<boolean> {
-    const query = `
-            UPDATE public."Blogs"
-            SET "name"=$1, "description"=$2, "websiteUrl"=$3
-            WHERE "id" = $4;
-            `
+  async createBlog(createBlogDto: Blog): Promise<BlogsViewModel> {
+    const createBlog = await this.blogRepository.save(createBlogDto);
 
-    const result = await this.dataSource.query(
-        query,[
-          updateBlogDto.name,
-          updateBlogDto.description,
-          updateBlogDto.websiteUrl,
-          id,
-        ]);
+    return createBlog;
+  }
+  async updateBlog(updateBlogDto: UpdateBlogModel): Promise<boolean> {
+    const updateBlog = await this.blogRepository.save(updateBlogDto);
 
-    return result.rowCount !== 0;
-
+    return !!updateBlog;
   }
 
-    async updatePostByBlog(
-        id: BlogIdModel,
-        updateBlogDto: UpdatePostByBlogModel,
-    ): Promise<boolean> {
-        const query = `
-            UPDATE public."Posts"
-            SET "title"=$1, "shortDescription"=$2, "content"=$3
-            WHERE "id" = $4;
-            `
+  async updatePostByBlog(updateBlogDto: Post): Promise<boolean> {
+    const updateBlog = await this.postRepository.save(updateBlogDto);
 
-        const result = await this.dataSource.query(
-            query,[
-                updateBlogDto.title,
-                updateBlogDto.shortDescription,
-                updateBlogDto.content,
-                id.postId,
-            ]);
-
-        return result.rowCount !== 0;
-
-    }
+    return !!updateBlog;
+  }
   async deleteBlog(id: string): Promise<boolean> {
-      const query = `
-            DELETE FROM public."Blogs"
-            WHERE "id" = $1 RETURNING id;
-            `
-      const result =await this.dataSource.query(
-          query,[
-              id,
-          ]);
+    const deleteBlog = await this.blogRepository.delete({
+      id: id,
+    });
 
-      if(result[1] === 0){
-          return false
-      }
-
-      return true;
+    return !!deleteBlog.affected;
   }
 
-    async deleteBlogByPost(id: BlogIdModel): Promise<boolean> {
-        const query = `
-            DELETE FROM public."Posts"
-            WHERE "id" = $1 AND "blogId" = $2
-            RETURNING id;
-            `
-        const result =await this.dataSource.query(
-            query,[
-                id.postId,
-                id.blogId,
-            ]);
+  async deleteBlogByPost(id: BlogIdModel): Promise<boolean> {
+    const deleteBlog = await this.postRepository.delete({
+      id: id.postId,
+      blogId: id.blogId,
+    });
 
-        if(result[1] === 0){
-            return false
-        }
-
-        return true;
-    }
+    return !!deleteBlog.affected;
+  }
 }

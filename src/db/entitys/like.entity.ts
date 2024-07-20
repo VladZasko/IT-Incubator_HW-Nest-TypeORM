@@ -12,10 +12,10 @@ export class Like {
   @Column()
   userId: string;
 
-  @Column()
+  @Column({ nullable: true })
   postId: string;
 
-  @Column()
+  @Column({ nullable: true })
   commentId: string;
 
   @Column()
