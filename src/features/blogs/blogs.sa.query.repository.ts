@@ -13,6 +13,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Blog } from '../../db/entitys/blog.entity';
 import { Post } from '../../db/entitys/post.entity';
+import { Like } from '../../db/entitys/like.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogsSaQueryRepository {
@@ -23,11 +24,13 @@ export class BlogsSaQueryRepository {
     private readonly blogRepository: Repository<Blog>,
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
+    @InjectRepository(Like)
+    private readonly likeRepository: Repository<Like>,
   ) {}
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'DESC';
+    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
@@ -59,38 +62,54 @@ export class BlogsSaQueryRepository {
   }
   async getPostsByBlogId(term: QueryPostsModel, blogId: string) {
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'desc';
+    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-    const query = `
-            SELECT p.*, b."name" as "blogName"
-            FROM public."Posts" as p
-            LEFT JOIN "Blogs" as b
-            ON p."blogId" = b."id"
-            WHERE b."id" = $1
-            ORDER BY "${sortBy}"  ${sortDirection}
-            LIMIT ${pageSize}
-            OFFSET ${(pageNumber - 1) * +pageSize}
-            `;
+    const queryBuilder = this.postRepository
+      .createQueryBuilder('p')
+      .select(['p', 'b.name'])
+      .leftJoin('p.blog', 'b')
+      .addSelect((qb) => {
+        return qb
+          .select('COUNT(*)', 'p_likeCount')
+          .from('Like', 'l')
+          .where('l.postId = p.id')
+          .andWhere("l.status = 'Like'");
+      })
+      .addSelect((qb) => {
+        return qb
+          .select('COUNT(*)', 'p_dislikeCount')
+          .from('Like', 'l')
+          .where('l.postId = p.id')
+          .andWhere("l.status = 'Dislike'");
+      })
+      .where('p.blogId = :blogId', { blogId })
+      .orderBy(`p.${sortBy}`, sortDirection)
+      .limit(pageSize)
+      .offset((pageNumber - 1) * pageSize);
 
-    const posts = await this.dataSource.query(query, [blogId]);
+    const posts = await queryBuilder.getRawMany();
 
-    const totalCount: number = await this.dataSource.query(
-      `
-            SELECT COUNT(*) FROM "Posts"
-            WHERE "blogId" = '${blogId}'
-            `,
-    );
+    const queryBuilder2 = await this.likeRepository
+      .createQueryBuilder('l')
+      .select(['l', 'u.login as userLogin'])
+      .leftJoin('User', 'u', 'l.userId = u.id')
+      .where('l.status = :status', { status: 'Like' })
+      .getRawMany();
 
-    const pagesCount = Math.ceil(+totalCount[0].count / +pageSize);
+    const totalCount: number = await this.postRepository
+      .createQueryBuilder('p')
+      .getCount();
+
+    const pagesCount = Math.ceil(+totalCount / +pageSize);
 
     return {
       pagesCount,
       page: +pageNumber,
       pageSize: +pageSize,
-      totalCount: +totalCount[0].count,
-      items: posts.map(postQueryMapper),
+      totalCount: +totalCount,
+      items: posts.map((posts) => postQueryMapper(posts, queryBuilder2)),
     };
   }
   // async getBlogById(id: string): Promise<BlogsViewModel | null> {

@@ -9,11 +9,12 @@ import { dataTestUserCreate01 } from '../../users/dataForTest/dataTestforUser';
 import { RouterPaths } from '../../../../src/routerPaths';
 import { UserDBType } from '../../../../src/db/schemes/users.schemes';
 
-
 export class AuthTestManager {
-  constructor(protected authQueryRepository: AuthQueryRepository,
-              protected readonly app: INestApplication,
-              protected readonly emailAdapter: EmailAdapter) {}
+  constructor(
+    protected authQueryRepository: AuthQueryRepository,
+    protected readonly app: INestApplication,
+    protected readonly emailAdapter: EmailAdapter,
+  ) {}
   async createToken(
     data: authModel,
     expectedStatusCode: HttpStatusType = HttpStatus.OK,
@@ -26,7 +27,7 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
       expect(result.body.errorsMessages.length).toBe(
-          expectedErrorsMessagesLength,
+        expectedErrorsMessagesLength,
       );
     }
 
@@ -59,7 +60,7 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
       expect(response.body.errorsMessages.length).toBe(
-          expectedErrorsMessagesLength,
+        expectedErrorsMessagesLength,
       );
     }
 
@@ -85,15 +86,13 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
       expect(response.body.errorsMessages.length).toBe(
-          expectedErrorsMessagesLength,
+        expectedErrorsMessagesLength,
       );
     }
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
       const userConfirmation =
-        await this.authQueryRepository.findByLoginOrEmail(
-          data.email,
-        );
+        await this.authQueryRepository.findByLoginOrEmail(data.email);
 
       expect(userConfirmation!.login).toBe(data.login);
       expect(userConfirmation!.isConfirmed).toBe(true);
@@ -117,7 +116,7 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
       expect(response.body.errorsMessages.length).toBe(
-          expectedErrorsMessagesLength,
+        expectedErrorsMessagesLength,
       );
     }
 
@@ -150,7 +149,7 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
       expect(response.body.errorsMessages.length).toBe(
-          expectedErrorsMessagesLength,
+        expectedErrorsMessagesLength,
       );
     }
 

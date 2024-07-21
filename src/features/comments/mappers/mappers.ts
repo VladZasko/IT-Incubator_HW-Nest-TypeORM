@@ -8,17 +8,17 @@ export const commentQueryMapper = (
   userId?: string,
 ): CommentViewModel => {
   return {
-    id: feedbackDb.id,
-    content: feedbackDb.content,
+    id: feedbackDb.c_id,
+    content: feedbackDb.c_content,
     commentatorInfo: {
-      userId: feedbackDb.userId,
-      userLogin: feedbackDb.userLogin,
+      userId: feedbackDb.c_userId,
+      userLogin: feedbackDb.c_userLogin,
     },
-    createdAt: feedbackDb.createdAt,
+    createdAt: feedbackDb.c_createdAt,
     likesInfo: {
-      likesCount: +feedbackDb.likecount,
-      dislikesCount: +feedbackDb.dislikecount,
-      myStatus: feedbackDb.userstatus ?? 'None',
+      likesCount: +feedbackDb.c_likeCount,
+      dislikesCount: +feedbackDb.c_dislikeCount,
+      myStatus: feedbackDb.c_userStatus ?? 'None',
     },
   };
 };

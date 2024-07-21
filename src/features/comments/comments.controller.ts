@@ -19,7 +19,7 @@ import { ObjectId } from 'mongodb';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
-import {validate as uuidValidate} from "uuid";
+import { validate as uuidValidate } from 'uuid';
 
 @Controller('comments')
 export class CommentsController {
@@ -69,16 +69,17 @@ export class CommentsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsQueryRepository.getCommentById(commentId);
+    const comment =
+      await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
     const updateLikeStatus = await this.commentsService.updateLikeStatus(
-        commentId,
-        req.user.userId,
-        inputModel.likeStatus,
+      commentId,
+      req.user.userId,
+      inputModel.likeStatus,
     );
 
     if (!updateLikeStatus) {
@@ -100,7 +101,8 @@ export class CommentsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsQueryRepository.getCommentById(commentId);
+    const comment =
+      await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([
@@ -136,7 +138,8 @@ export class CommentsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const comment = await this.commentsQueryRepository.getCommentById(commentId);
+    const comment =
+      await this.commentsQueryRepository.getCommentById(commentId);
 
     if (!comment) {
       throw new NotFoundException([

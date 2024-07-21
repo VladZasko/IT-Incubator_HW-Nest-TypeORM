@@ -17,7 +17,7 @@ import { UsersQueryRepository } from './users.query.repository';
 import { CreateUserModel } from './models/input/CreateUserModel';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { mapServiceCodeToHttpStatus } from '../auth/mapper/status-code-mapper';
-import {UserIdModel} from "./models/input/UserIdModel";
+import { UserIdModel } from './models/input/UserIdModel';
 
 @UseGuards(BasicAuthGuard)
 @Controller('sa/users')

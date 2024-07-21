@@ -5,6 +5,7 @@ import { BlogsRepository } from '../blogs/blogs.repository';
 import { CreateCommentServiceModel } from '../comments/models/input/CreateCommentModel';
 import { v4 as uuidv4 } from 'uuid';
 import { Like } from '../../db/entitys/like.entity';
+import { Comment } from '../../db/entitys/comments.entity';
 
 @Injectable()
 export class PostsService {
@@ -37,13 +38,13 @@ export class PostsService {
     createData: CreateCommentServiceModel,
     postId: string,
   ): Promise<any> {
-    const newComment = {
-      id: uuidv4(),
-      content: createData.content,
-      userId: createData.userId,
-      createdAt: new Date().toISOString(),
-      postId: postId,
-    };
+    const newComment = new Comment();
+
+    newComment.id = uuidv4();
+    newComment.content = createData.content;
+    newComment.userId = createData.userId;
+    newComment.createdAt = new Date().toISOString();
+    newComment.postId = postId;
 
     return await this.postsRepository.createCommentByPost(newComment);
   }

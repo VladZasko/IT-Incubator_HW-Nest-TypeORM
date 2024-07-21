@@ -21,11 +21,17 @@ import { BlogDBType } from '../../db/schemes/blogs.schemes';
 import { CreateBlogReposModel } from '../blogs/models/input/CreateBlogModel';
 import { BlogsViewModel } from '../blogs/models/output/BlogsViewModel';
 import { Like } from '../../db/entitys/like.entity';
+import { Comment } from '../../db/entitys/comments.entity';
+import { Post } from '../../db/entitys/post.entity';
 @Injectable()
 export class PostsRepository {
   constructor(
     @InjectDataSource()
     protected dataSource: DataSource,
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
     @InjectRepository(Like)
     private readonly likeRepository: Repository<Like>,
   ) {}
@@ -35,15 +41,6 @@ export class PostsRepository {
       .where('l.postId = :postId', { postId: postId })
       .andWhere('l.userId = :userId', { userId: userId })
       .getOne();
-    // const query = `
-    //         SELECT *
-    //         FROM public."Likes"
-    //         WHERE "postId" = $1 AND "userId" = $2
-    //         `;
-
-    // const result = await this.dataSource.query(query, [postId, userId]);
-    //
-    // if (!result[0]) return null;
 
     return queryBuilder;
   }
@@ -206,38 +203,22 @@ export class PostsRepository {
   //
   // }
   async createCommentByPost(createData: CreateCommentModelRepo): Promise<any> {
-    const query = `
-            INSERT INTO public."Comments"(
-            id, content, "createdAt", "postId", "userId")
-            VALUES ($1, $2, $3, $4, $5);
-            `;
+    await this.commentRepository.save(createData);
 
-    await this.dataSource.query(query, [
-      createData.id,
-      createData.content,
-      createData.createdAt,
-      createData.postId,
-      createData.userId,
-    ]);
-
-    const query2 = `
-        SELECT c.*, u."login" as "userLogin"
-            FROM public."Comments" as c
-            LEFT JOIN "Users" as u
-            ON c."userId" = u."id"
-            WHERE c."id" = $1
-            `;
-
-    const result = await this.dataSource.query(query2, [createData.id]);
+    const comment = await this.commentRepository
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.user', 'u')
+      .where('c.id = :commentId', { commentId: createData.id })
+      .getOne();
 
     return {
-      id: result[0].id,
-      content: result[0].content,
+      id: comment!.id,
+      content: comment!.content,
       commentatorInfo: {
-        userId: result[0].userId,
-        userLogin: result[0].userLogin,
+        userId: comment!.user.id,
+        userLogin: comment!.user.login,
       },
-      createdAt: result[0].createdAt,
+      createdAt: comment!.createdAt,
       likesInfo: {
         likesCount: 0,
         dislikesCount: 0,

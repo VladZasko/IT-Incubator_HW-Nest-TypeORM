@@ -9,58 +9,55 @@ import {
 import { commentMapper } from './mappers/mappers';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
 import { LikesStatus } from '../posts/models/output/PostsViewModel';
-import {InjectDataSource} from "@nestjs/typeorm";
-import {DataSource} from "typeorm";
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { Comment } from '../../db/entitys/comments.entity';
+import { Like } from '../../db/entitys/like.entity';
 @Injectable()
 export class CommentsRepository {
   constructor(
-      @InjectDataSource()
-      protected dataSource: DataSource,
+    @InjectDataSource()
+    protected dataSource: DataSource,
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
+    @InjectRepository(Like)
+    private readonly likeRepository: Repository<Like>,
   ) {}
 
-  // async getCommentById(id: string): Promise<any | null> {
-  //   const comment = await this.commentModel.findById({ _id: new ObjectId(id) });
-  //
-  //   if (!comment) {
-  //     return null;
-  //   }
-  //   return commentMapper(comment);
-  // }
+  async getCommentById(id: string): Promise<Comment | null> {
+    const comment = await this.commentRepository.findOneBy({ id: id });
 
-  async updateComment(
-    id: string,
-    upData: UpdateFeedbackModuleModel,
-  ): Promise<boolean> {
-    const query = `
-            UPDATE public."Comments"
-            SET "content"=$2
-            WHERE "id" = $1;
-            `
-
-    const result = await this.dataSource.query(
-        query,[
-          id,
-          upData.content,
-        ]);
-
-    return result.rowCount !== 0;
+    if (!comment) {
+      return null;
+    }
+    return comment;
   }
-  async getLikeOrDislike(commentId: string, userId: string): Promise<any> {
-    const query = `
-            SELECT *
-            FROM public."Likes"
-            WHERE "commentId" = $1 AND "userId" = $2
-            `
 
-    const result = await this.dataSource.query(
-        query,[
-          commentId,
-          userId
-        ]);
+  async updateComment(updateComment: Comment): Promise<boolean> {
+    return !!(await this.commentRepository.save(updateComment));
+  }
+  async getLikeOrDislike(
+    commentId: string,
+    userId: string,
+  ): Promise<Like | null> {
+    // const query = `
+    //         SELECT *
+    //         FROM public."Likes"
+    //         WHERE "commentId" = $1 AND "userId" = $2
+    //         `;
+    //
+    // const result = await this.dataSource.query(query, [commentId, userId]);
+    //
+    // if (!result[0]) return null;
+    //
+    // return result[0];
+    const queryBuilder = await this.likeRepository
+      .createQueryBuilder('l')
+      .where('l.commentId = :commentId', { commentId: commentId })
+      .andWhere('l.userId = :userId', { userId: userId })
+      .getOne();
 
-    if(!result[0]) return null
-
-    return result[0];
+    return queryBuilder;
   }
 
   async updateLikeOrDislike(likesData: any): Promise<any> {
@@ -68,51 +65,41 @@ export class CommentsRepository {
             UPDATE public."Likes" as l
             SET status=$3
             WHERE l."userId" = $1 AND l."commentId" = $2;
-            `
+            `;
 
-    await this.dataSource.query(
-        query,[
-          likesData.userId,
-          likesData.commentId,
-          likesData.newLikeStatus,
-        ]);
+    await this.dataSource.query(query, [
+      likesData.userId,
+      likesData.commentId,
+      likesData.newLikeStatus,
+    ]);
 
     return true;
   }
 
   async addLikeOrDislike(likesData: any): Promise<any> {
-    const query = `
-            INSERT INTO public."Likes"(
-            id, "userId", "commentId", status, "createdAt")
-            VALUES ($1, $2, $3, $4, $5);
-            `
-    await this.dataSource.query(
-        query,[
-          likesData.id,
-          likesData.userId,
-          likesData.commentId,
-          likesData.newLikeStatus,
-          likesData.createdAt,
-        ]);
-
-    return true;
+    // const query = `
+    //         INSERT INTO public."Likes"(
+    //         id, "userId", "commentId", status, "createdAt")
+    //         VALUES ($1, $2, $3, $4, $5);
+    //         `;
+    // await this.dataSource.query(query, [
+    //   likesData.id,
+    //   likesData.userId,
+    //   likesData.commentId,
+    //   likesData.newLikeStatus,
+    //   likesData.createdAt,
+    // ]);
+    //
+    // return true;
+    const addLike = await this.likeRepository.save(likesData);
+    return !!addLike;
   }
 
   async deleteCommentById(id: string): Promise<boolean> {
-    const query = `
-            DELETE FROM public."Comments"
-            WHERE "id" = $1
-            RETURNING id;
-            `
-    const result =await this.dataSource.query(
-        query,[
-          id
-        ]);
+    const deleteBlog = await this.commentRepository.delete({
+      id: id,
+    });
 
-    if(result[1] === 0){
-      return false
-    }
-
-    return true;
+    return !!deleteBlog.affected;
   }
 }

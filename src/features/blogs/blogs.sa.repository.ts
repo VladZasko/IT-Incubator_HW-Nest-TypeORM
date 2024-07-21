@@ -52,9 +52,11 @@ export class BlogsSaRepository {
     };
   }
   async getPostByBlog(id: BlogIdModel): Promise<Post | null> {
-    return this.postRepository.findOne({
-      where: [{ id: id.postId }, { blogId: id.blogId }],
+    const a = await this.postRepository.findOne({
+      where: [{ id: id.postId, blogId: id.blogId }],
     });
+    console.log(a);
+    return a;
   }
 
   async getBlog(id: string): Promise<Blog | null> {

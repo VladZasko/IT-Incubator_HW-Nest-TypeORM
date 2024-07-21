@@ -8,7 +8,7 @@ export const securityDevicesMapper = (
   return {
     ip: securityDevicesDb.ip,
     title: securityDevicesDb.deviceName,
-    lastActiveDate: securityDevicesDb.issuetAt,
+    lastActiveDate: securityDevicesDb.issuedAt,
     deviceId: securityDevicesDb.deviceId,
   };
 };

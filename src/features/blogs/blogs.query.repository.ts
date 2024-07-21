@@ -1,8 +1,6 @@
 import { Injectable, Scope } from '@nestjs/common';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
-import { blogMapper } from './mappers/mapper';
 import { BlogsViewModel } from './models/output/BlogsViewModel';
-import { ObjectId } from 'mongodb';
 import { postQueryMapper } from '../posts/mappers/mappers';
 import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -26,7 +24,7 @@ export class BlogsQueryRepository {
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'DESC';
+    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
@@ -62,51 +60,14 @@ export class BlogsQueryRepository {
     userId?: string,
   ) {
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection ?? 'DESC';
+    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
-    const queryBuilder = await this.postRepository
+    const queryBuilder = this.postRepository
       .createQueryBuilder('p')
-      .select([
-        'p',
-        'b.name as blogName',
-        'COALESCE(lc.like_count, 0) as likeCount',
-        'COALESCE(lc.dislike_count, 0) as dislikeCount',
-        'l.status as userStatus',
-      ])
+      .select(['p', 'b.name'])
       .leftJoin('p.blog', 'b')
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'l.postId as postId',
-              "COUNT(CASE WHEN l.status = 'Like' THEN 1 END) as like_count",
-              "COUNT(CASE WHEN l.status = 'Dislike' THEN 1 END) as dislike_count",
-            ])
-            .from(Like, 'l')
-            .groupBy('l.postId'),
-        'lc',
-        'p.id = lc.postId',
-      )
-      .leftJoin('Like', 'l', 'p.id = l.postId AND l.userId = :userId', {
-        userId,
-      })
-      .where('b.id = :blogId', { blogId })
-      .orderBy(`p.${sortBy}`, sortDirection)
-      .limit(pageSize)
-      .offset((pageNumber - 1) * pageSize)
-      .getMany();
-
-    const queryBuilder3 = this.postRepository
-      .createQueryBuilder('p')
-      // .select([
-      //   'p',
-      //   'b.name as blogName',
-      //   'COALESCE(lc.like_count, 0) as likeCount',
-      //   'COALESCE(lc.dislike_count, 0) as dislikeCount',
-      //   'l.status as userStatus',
-      // ])
       .addSelect((qb) => {
         return qb
           .select('b.name', 'p_blogName')
@@ -115,7 +76,7 @@ export class BlogsQueryRepository {
       })
       .addSelect((qb) => {
         return qb
-          .select('COUNT(*)', 'p_likesCount')
+          .select('COUNT(*)', 'p_likeCount')
           .from('Like', 'l')
           .where('l.postId = p.id')
           .andWhere("l.status = 'Like'");
@@ -126,34 +87,72 @@ export class BlogsQueryRepository {
           .from('Like', 'l')
           .where('l.postId = p.id')
           .andWhere("l.status = 'Dislike'");
-      });
-    // .leftJoin('Like', 'l', 'p.id = l.postId AND l.userId = :userId', {
-    //   userId,
-    // })
-    // .where('b.id = :blogId', { blogId })
+      })
+      .addSelect((qb) => {
+        return qb
+          .select('l.status', 'p_userStatus')
+          .from('Like', 'l')
+          .where('l.userId = :userId', { userId: userId })
+          .andWhere('l.postId = p.id');
+      })
+      .where('p.blogId = :blogId', { blogId })
+      .orderBy(`p.${sortBy}`, sortDirection)
+      .limit(pageSize)
+      .offset((pageNumber - 1) * pageSize);
+
+    const posts = await queryBuilder.getRawMany();
+
+    // const queryBuilder3 = this.postRepository
+    //   .createQueryBuilder('p')
+    //   .select([
+    //     'p',
+    //     'b.name as blogName',
+    //     'COALESCE(lc.like_count, 0) as likeCount',
+    //     'COALESCE(lc.dislike_count, 0) as dislikeCount',
+    //     'l.status as userStatus',
+    //   ])
+    //   .leftJoin('p.blog', 'b')
+    //   .leftJoin(
+    //     (qb) =>
+    //       qb
+    //         .select([
+    //           'l.postId as postId',
+    //           "COUNT(CASE WHEN l.status = 'Like' THEN 1 END) as like_count",
+    //           "COUNT(CASE WHEN l.status = 'Dislike' THEN 1 END) as dislike_count",
+    //         ])
+    //         .from(Like, 'l')
+    //         .groupBy('l.postId'),
+    //     'lc',
+    //     'p.id = lc.postId',
+    //   )
+    //   .leftJoin('Like', 'l', 'p.id = l.postId AND l.userId = :userId', {
+    //     userId,
+    //   })
+    //   .where('b.id = :blogId', { blogId });
     // .orderBy(`p.${sortBy}`, sortDirection)
     // .limit(pageSize)
     // .offset((pageNumber - 1) * pageSize);
-
-    console.log(queryBuilder);
-    console.log('newTest');
-    console.log(queryBuilder3.getSql());
-
-    const post2 = await queryBuilder3.getRawMany();
-
-    console.log(post2);
+    //
+    // const posts2 = await queryBuilder3.getRawMany();
+    //
+    // console.log(posts2);
 
     const queryBuilder2 = await this.likeRepository
       .createQueryBuilder('l')
-      .select(['l', 'u.login'])
+      // .addSelect((qb) => {
+      //   return qb
+      //     .select('u.login', 'l_login')
+      //     .from('User', 'u')
+      //     .where('u.id = l.userId');
+      // })
+      .select(['l', 'u.login as userLogin'])
       .leftJoin('User', 'u', 'l.userId = u.id')
       .where('l.status = :status', { status: 'Like' })
-      .getMany();
-
-    console.log(queryBuilder2);
+      .getRawMany();
 
     const totalCount: number = await this.postRepository
       .createQueryBuilder('p')
+      .where('p.blogId = :blogId', { blogId: blogId })
       .getCount();
 
     const pagesCount = Math.ceil(+totalCount / +pageSize);
@@ -163,18 +162,10 @@ export class BlogsQueryRepository {
       page: +pageNumber,
       pageSize: +pageSize,
       totalCount: +totalCount,
-      items: queryBuilder.map((posts) => postQueryMapper(posts, queryBuilder2)),
+      items: posts.map((posts) => postQueryMapper(posts, queryBuilder2)),
     };
   }
   async getBlogById(id: string): Promise<BlogsViewModel | null> {
-    const query = `
-            SELECT *
-            FROM public."Blogs"
-            WHERE "id" = $1
-            `;
-
-    const result = await this.dataSource.query(query, [id]);
-
-    return result[0];
+    return this.blogRepository.findOneBy({ id: id });
   }
 }

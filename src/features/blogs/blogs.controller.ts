@@ -22,7 +22,7 @@ import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { ObjectId } from 'mongodb';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
-import {validate as uuidValidate} from "uuid";
+import { validate as uuidValidate } from 'uuid';
 
 @Controller({ path: 'blogs', scope: Scope.REQUEST })
 export class BlogsController {
@@ -59,7 +59,10 @@ export class BlogsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const foundBlog = await this.blogsQueryRepository.getPostsByBlogId(query, blogId);
+    const foundBlog = await this.blogsQueryRepository.getPostsByBlogId(
+      query,
+      blogId,
+    );
 
     if (!foundBlog) {
       // Возвращаем HTTP статус 404 и сообщение
@@ -84,5 +87,4 @@ export class BlogsController {
     }
     return blog;
   }
-
 }

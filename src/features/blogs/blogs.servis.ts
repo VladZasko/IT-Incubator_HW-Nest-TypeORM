@@ -82,7 +82,7 @@ export class BlogsService {
 
     updatePost.title = updateData.title;
     updatePost.shortDescription = updateData.shortDescription;
-    updatePost.const = updateData.content;
+    updatePost.content = updateData.content;
 
     return await this.blogsSaRepository.updatePostByBlog(updatePost);
   }

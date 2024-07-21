@@ -115,7 +115,7 @@ export class PostsController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const post = await this.postsQueryRepository.getPostById(postId);
+    const post = await this.postsQueryRepository.getPostId(postId);
 
     if (!post) {
       throw new NotFoundException([
