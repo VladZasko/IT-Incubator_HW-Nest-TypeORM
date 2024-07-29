@@ -14,7 +14,6 @@ import {
   Scope,
   UseGuards,
 } from '@nestjs/common';
-import { BlogsService } from './application/blogs.servis';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
 import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
@@ -25,17 +24,20 @@ import { BlogIdModel } from './models/input/BlogIdModel';
 import { UpdatePostByBlogModel } from './models/input/UpdatePostByBlogModel';
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateBlogCommand } from './application/use-cases/create.blog.use.case';
+import { CreatePostByBlogCommand } from './application/use-cases/create.post.by.blog.use.case';
+import { UpdateBlogCommand } from './application/use-cases/update.blog.use.case';
+import { UpdatePostByBlogCommand } from './application/use-cases/update.post.by.blog.use.case';
+import { DeleteBlogCommand } from './application/use-cases/delete.blog.use.case';
+import { DeletePostByBlogCommand } from './application/use-cases/delete.post.by.blog.use.case';
 
 @Controller({ path: 'sa/blogs', scope: Scope.REQUEST })
 export class BlogsSAController {
   private readonly blogsService;
   private readonly blogsSaQueryRepository;
   constructor(
-    blogsService: BlogsService,
     blogsSaQueryRepository: BlogsSaQueryRepository,
     private commandBus: CommandBus,
   ) {
-    this.blogsService = blogsService;
     this.blogsSaQueryRepository = blogsSaQueryRepository;
     console.log('CONTROLLER created');
   }
@@ -84,11 +86,7 @@ export class BlogsSAController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createBlog(@Body() inputModel: CreateBlogModel) {
-    //const newBlog = await this.blogsService.createBlog(inputModel);
-
     return this.commandBus.execute(new CreateBlogCommand(inputModel));
-
-    //return newBlog;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -101,14 +99,17 @@ export class BlogsSAController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const newPostId = await this.blogsService.createPostBlog(blogId, createDTO);
+    const newPost = await this.commandBus.execute(
+      new CreatePostByBlogCommand(blogId, createDTO),
+    );
+    //const newPostId = await this.blogsService.createPostBlog(blogId, createDTO);
 
-    if (newPostId === null) {
+    if (newPost === null) {
       // Возвращаем HTTP статус 404 и сообщение
       throw new NotFoundException('Post not found');
     }
 
-    return newPostId;
+    return newPost;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -122,8 +123,10 @@ export class BlogsSAController {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
 
-    const updateBlog = await this.blogsService.updateBlog(blogId, inputModel);
-
+    //const updateBlog = await this.blogsService.updateBlog(blogId, inputModel);
+    const updateBlog = await this.commandBus.execute(
+      new UpdateBlogCommand(blogId, inputModel),
+    );
     if (updateBlog === false) {
       throw new NotFoundException('Blog not found');
     }
@@ -142,13 +145,15 @@ export class BlogsSAController {
     //     throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     // }
 
-    const updateBlog = await this.blogsService.updatePostByBlog(id, inputModel);
-
-    if (updateBlog === false) {
+    //const updateBlog = await this.blogsService.updatePostByBlog(id, inputModel);
+    const updatePost = await this.commandBus.execute(
+      new UpdatePostByBlogCommand(id, inputModel),
+    );
+    if (updatePost === false) {
       throw new NotFoundException('Post not found');
     }
 
-    return updateBlog;
+    return updatePost;
   }
 
   @UseGuards(BasicAuthGuard)
@@ -158,8 +163,10 @@ export class BlogsSAController {
     if (!uuidValidate(blogId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
-    const deleteBlog = await this.blogsService.deleteBlogById(blogId);
-
+    //const deleteBlog = await this.blogsService.deleteBlogById(blogId);
+    const deleteBlog = await this.commandBus.execute(
+      new DeleteBlogCommand(blogId),
+    );
     if (deleteBlog === false) {
       throw new NotFoundException('Post not found');
     }
@@ -175,13 +182,15 @@ export class BlogsSAController {
     //     throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     // }
 
-    const deleteBlog = await this.blogsService.deletePostByBlog(id);
-
-    if (deleteBlog === false) {
+    //const deleteBlog = await this.blogsService.deletePostByBlog(id);
+    const deletePost = await this.commandBus.execute(
+      new DeletePostByBlogCommand(id),
+    );
+    if (deletePost === false) {
       // Возвращаем HTTP статус 404 и сообщение
       throw new NotFoundException('Post not found');
     }
 
-    return deleteBlog;
+    return deletePost;
   }
 }

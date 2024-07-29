@@ -16,7 +16,7 @@ export class CreateBlogUseCase implements ICommandHandler<CreateBlogCommand> {
   private readonly blogsSaRepository: BlogsSaRepository;
   constructor(blogsSaRepository: BlogsSaRepository) {
     this.blogsSaRepository = blogsSaRepository;
-    console.log('Create Blog Use Case created');
+    console.log('CREATE BLOG USE CASE created');
   }
   async execute(command: CreateBlogCommand): Promise<BlogsViewModel | null> {
     const newBlog: Blog = new Blog();

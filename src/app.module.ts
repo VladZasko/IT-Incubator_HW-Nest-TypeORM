@@ -6,7 +6,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BlogsController } from './features/blogs/blogs.controller';
-import { BlogsService } from './features/blogs/application/blogs.servis';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BlogsQueryRepository } from './features/blogs/repository/blogs.query.repository';
 import { PostsController } from './features/posts/posts.controller';
@@ -61,10 +60,15 @@ import { Post } from './db/entitys/post.entity';
 import { Like } from './db/entitys/like.entity';
 import { Comment } from './db/entitys/comments.entity';
 import { CreateBlogUseCase } from './features/blogs/application/use-cases/create.blog.use.case';
+import { CreatePostByBlogUseCase } from './features/blogs/application/use-cases/create.post.by.blog.use.case';
+import { UpdateBlogUseCase } from './features/blogs/application/use-cases/update.blog.use.case';
+import { UpdatePostByBlogUseCase } from './features/blogs/application/use-cases/update.post.by.blog.use.case';
+import { DeletePostByBlogCommand } from './features/blogs/application/use-cases/delete.post.by.blog.use.case';
+import { DeleteBlogUseCase } from './features/blogs/application/use-cases/delete.blog.use.case';
 
 const dbName = 'blogs-hws';
 
-const useCases = [
+const useCasesAuth = [
   CreateUserUseCase,
   RecoveryPasswordUseCase,
   ConfirmEmailUseCase,
@@ -72,6 +76,15 @@ const useCases = [
   NewPasswordUseCase,
   RefreshAndAccessTokenUseCase,
   ResendingConfirmEmailUseCase,
+];
+
+const useCasesBlog = [
+  CreateBlogUseCase,
+  CreatePostByBlogUseCase,
+  UpdateBlogUseCase,
+  UpdatePostByBlogUseCase,
+  DeleteBlogUseCase,
+  DeletePostByBlogCommand,
 ];
 
 export const options: TypeOrmModuleOptions = {
@@ -130,7 +143,6 @@ export const options: TypeOrmModuleOptions = {
     //   useClass: ThrottlerGuard,
     // },
     AppService,
-    BlogsService,
     BlogsSaRepository,
     BlogsQueryRepository,
     BlogsSaQueryRepository,
@@ -155,8 +167,8 @@ export const options: TypeOrmModuleOptions = {
     SecurityDevicesService,
     SecurityDevicesQueryRepository,
     SecurityDevicesRepository,
-    ...useCases,
-    CreateBlogUseCase,
+    ...useCasesAuth,
+    ...useCasesBlog,
   ],
 })
 export class AppModule {}

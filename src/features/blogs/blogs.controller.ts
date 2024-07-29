@@ -1,26 +1,15 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   NotFoundException,
   Param,
-  Post,
-  Put,
   Query,
   Request,
   Scope,
   UseGuards,
 } from '@nestjs/common';
-import { BlogsService } from './application/blogs.servis';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
 import { BlogsQueryRepository } from './repository/blogs.query.repository';
-import { CreateBlogModel } from './models/input/CreateBlogModel';
-import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
-import { ObjectId } from 'mongodb';
-import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { validate as uuidValidate } from 'uuid';
 
@@ -28,11 +17,7 @@ import { validate as uuidValidate } from 'uuid';
 export class BlogsController {
   private readonly blogsService;
   private readonly blogsQueryRepository;
-  constructor(
-    blogsService: BlogsService,
-    blogsQueryRepository: BlogsQueryRepository,
-  ) {
-    this.blogsService = blogsService;
+  constructor(blogsQueryRepository: BlogsQueryRepository) {
     this.blogsQueryRepository = blogsQueryRepository;
     console.log('CONTROLLER created');
   }
