@@ -9,16 +9,13 @@ import { BlogsController } from './features/blogs/blogs.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BlogsQueryRepository } from './features/blogs/repository/blogs.query.repository';
 import { PostsController } from './features/posts/posts.controller';
-import { PostsService } from './features/posts/application/posts.servis';
 import { PostsRepository } from './features/posts/repository/posts.repository';
 import { PostsQueryRepository } from './features/posts/repository/posts.query.repository';
 import { DeleteAllData } from './routes/tests';
 import { CommentsController } from './features/comments/comments.controller';
 import { CommentsQueryRepository } from './features/comments/repository/comments.query.repository';
-import { CommentsService } from './features/comments/application/comments.servis';
 import { CommentsRepository } from './features/comments/repository/comments.repository';
 import { UsersController } from './features/users/users.controller';
-import { UsersService } from './features/users/application/users.servis';
 import { UsersRepository } from './features/users/repository/users.repository';
 import { UsersQueryRepository } from './features/users/repository/users.query.repository';
 import { JwtModule } from '@nestjs/jwt';
@@ -42,7 +39,6 @@ import { ResendingConfirmEmailUseCase } from './features/auth/application/use-ca
 import { AccessRolesGuard } from './features/auth/guards/access.roles.guard';
 import { RefreshTokenGuard } from './features/auth/guards/refresh-token.guard';
 import { SecurityDevicesController } from './features/securityDevices/security.devices.controller';
-import { SecurityDevicesService } from './features/securityDevices/application/security.devices.servis';
 import { SecurityDevicesQueryRepository } from './features/securityDevices/repository/security.devices.query.repository';
 import { SecurityDevicesRepository } from './features/securityDevices/repository/security.devices.repository';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -63,8 +59,17 @@ import { CreateBlogUseCase } from './features/blogs/application/use-cases/create
 import { CreatePostByBlogUseCase } from './features/blogs/application/use-cases/create.post.by.blog.use.case';
 import { UpdateBlogUseCase } from './features/blogs/application/use-cases/update.blog.use.case';
 import { UpdatePostByBlogUseCase } from './features/blogs/application/use-cases/update.post.by.blog.use.case';
-import { DeletePostByBlogCommand } from './features/blogs/application/use-cases/delete.post.by.blog.use.case';
+import { DeletePostByBlogUseCase } from './features/blogs/application/use-cases/delete.post.by.blog.use.case';
 import { DeleteBlogUseCase } from './features/blogs/application/use-cases/delete.blog.use.case';
+import { CreateCommentByPostUseCase } from './features/posts/application/use-cases/create.comment.by.post.use.case';
+import { UpdateLikeByPostUseCase } from './features/posts/application/use-cases/update.like.by.post.use.case';
+import { UpdateCommentUseCase } from './features/comments/application/use-cases/update.comment.use.case';
+import { UpdateLikeByCommentUseCase } from './features/comments/application/use-cases/update.like.by.comment.use.case';
+import { DeleteCommentUseCase } from './features/comments/application/use-cases/delete.comment.use.case';
+import { DeleteDeviceUseCase } from './features/securityDevices/application/use-cases/delete.device.use.case';
+import { DeleteAllDeviceUseCase } from './features/securityDevices/application/use-cases/delete.all.device.use.case';
+import { CreateUserSaUseCase } from './features/users/application/use-cases/create.user.sa.use.case';
+import { DeleteUserSaUseCase } from './features/users/application/use-cases/delete.user.sa.use.case';
 
 const dbName = 'blogs-hws';
 
@@ -84,8 +89,20 @@ const useCasesBlog = [
   UpdateBlogUseCase,
   UpdatePostByBlogUseCase,
   DeleteBlogUseCase,
-  DeletePostByBlogCommand,
+  DeletePostByBlogUseCase,
 ];
+
+const useCasesPost = [CreateCommentByPostUseCase, UpdateLikeByPostUseCase];
+
+const useCasesComment = [
+  UpdateCommentUseCase,
+  UpdateLikeByCommentUseCase,
+  DeleteCommentUseCase,
+];
+
+const useCasesDevices = [DeleteDeviceUseCase, DeleteAllDeviceUseCase];
+
+const useCasesUserSa = [CreateUserSaUseCase, DeleteUserSaUseCase];
 
 export const options: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -146,13 +163,10 @@ export const options: TypeOrmModuleOptions = {
     BlogsSaRepository,
     BlogsQueryRepository,
     BlogsSaQueryRepository,
-    PostsService,
     PostsRepository,
     PostsQueryRepository,
-    CommentsService,
     CommentsRepository,
     CommentsQueryRepository,
-    UsersService,
     UsersRepository,
     UsersQueryRepository,
     AuthRepository,
@@ -164,11 +178,14 @@ export const options: TypeOrmModuleOptions = {
     AuthService,
     AccessRolesGuard,
     RefreshTokenGuard,
-    SecurityDevicesService,
     SecurityDevicesQueryRepository,
     SecurityDevicesRepository,
     ...useCasesAuth,
     ...useCasesBlog,
+    ...useCasesPost,
+    ...useCasesComment,
+    ...useCasesDevices,
+    ...useCasesUserSa,
   ],
 })
 export class AppModule {}

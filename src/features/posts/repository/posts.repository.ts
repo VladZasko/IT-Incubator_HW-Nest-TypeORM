@@ -6,6 +6,7 @@ import { DataSource, Repository } from 'typeorm';
 import { Like } from '../../../db/entitys/like.entity';
 import { Comment } from '../../../db/entitys/comments.entity';
 import { Post } from '../../../db/entitys/post.entity';
+import { CommentViewModel } from '../../comments/models/output/CommentViewModel';
 @Injectable()
 export class PostsRepository {
   constructor(
@@ -185,7 +186,9 @@ export class PostsRepository {
   //   return !!foundPost.matchedCount;
   //
   // }
-  async createCommentByPost(createData: CreateCommentModelRepo): Promise<any> {
+  async createCommentByPost(
+    createData: CreateCommentModelRepo,
+  ): Promise<CommentViewModel> {
     await this.commentRepository.save(createData);
 
     const comment = await this.commentRepository

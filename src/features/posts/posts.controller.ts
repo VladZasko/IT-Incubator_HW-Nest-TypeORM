@@ -11,10 +11,10 @@ import {
   Put,
   Query,
   Request,
+  Scope,
   UseGuards,
 } from '@nestjs/common';
 import { PostsQueryRepository } from './repository/posts.query.repository';
-import { PostsService } from './application/posts.servis';
 import { QueryPostsModel } from './models/input/QueryPostsModule';
 import { QueryCommentModule } from '../comments/models/input/QueryCommentModule';
 import { CreateCommentModel } from '../comments/models/input/CreateCommentModel';
@@ -24,20 +24,31 @@ import { UpdateLikesModule } from '../comments/models/input/UpdateLikesModule';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { IdParamModel } from './models/input/IdParamModel';
 import { validate as uuidValidate } from 'uuid';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreateCommentByPostCommand } from './application/use-cases/create.comment.by.post.use.case';
+import { UpdateLikeByPostCommand } from './application/use-cases/update.like.by.post.use.case';
 
-@Controller('posts')
+@Controller({ path: 'posts', scope: Scope.REQUEST })
 export class PostsController {
+  private readonly postsQueryRepository;
+  private readonly authQueryRepository;
+  private commandBus;
   constructor(
-    protected postsService: PostsService,
-    protected postsQueryRepository: PostsQueryRepository,
-    protected authQueryRepository: AuthQueryRepository,
-  ) {}
+    postsQueryRepository: PostsQueryRepository,
+    authQueryRepository: AuthQueryRepository,
+    commandBus: CommandBus,
+  ) {
+    this.postsQueryRepository = postsQueryRepository;
+    this.authQueryRepository = authQueryRepository;
+    this.commandBus = commandBus;
+    console.log('CONTROLLER created');
+  }
 
   @UseGuards(AccessRolesGuard)
   @Get()
   async getPosts(@Query() query: QueryPostsModel, @Request() req) {
     const likeStatusData = req.userId;
-    //const likeStatusData2 = req.user.userId;
+
     const posts = await this.postsQueryRepository.getAllPosts(
       query,
       likeStatusData,
@@ -117,15 +128,19 @@ export class PostsController {
       ]);
     }
     const user = await this.authQueryRepository.getUserById(req.user.userId);
+
     const createData = {
       userId: user!.id,
       content: inputModel.content,
       userLogin: user!.login,
     };
 
-    const newComment = await this.postsService.createCommentByPost(
-      createData,
-      post.id,
+    // const newComment = await this.postsService.createCommentByPost(
+    //   createData,
+    //   post.id,
+    // );
+    const newComment = await this.commandBus.execute(
+      new CreateCommentByPostCommand(createData, post.id),
     );
 
     return newComment;
@@ -152,10 +167,14 @@ export class PostsController {
       ]);
     }
 
-    const updateLikeStatus = await this.postsService.updateLikeStatus(
-      postId,
-      req.user.userId,
-      likeStatus,
+    // const updateLikeStatus = await this.postsService.updateLikeStatus(
+    //   postId,
+    //   req.user.userId,
+    //   likeStatus,
+    // );
+
+    const updateLikeStatus = await this.commandBus.execute(
+      new UpdateLikeByPostCommand(postId, req.user.userId, likeStatus),
     );
 
     if (!updateLikeStatus) {

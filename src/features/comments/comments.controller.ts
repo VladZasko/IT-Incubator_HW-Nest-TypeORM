@@ -10,23 +10,30 @@ import {
   Param,
   Put,
   Request,
+  Scope,
   UseGuards,
 } from '@nestjs/common';
-import { CommentsService } from './application/comments.servis';
 import { CommentsQueryRepository } from './repository/comments.query.repository';
 import { UpdateLikesModule } from './models/input/UpdateLikesModule';
-import { ObjectId } from 'mongodb';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { validate as uuidValidate } from 'uuid';
+import { CommandBus } from '@nestjs/cqrs';
+import { UpdateLikeByCommentCommand } from './application/use-cases/update.like.by.comment.use.case';
+import { UpdateCommentCommand } from './application/use-cases/update.comment.use.case';
+import { DeleteCommentCommand } from './application/use-cases/delete.comment.use.case';
 
-@Controller('comments')
+@Controller({ path: 'comments', scope: Scope.REQUEST })
 export class CommentsController {
+  private readonly commentsQueryRepository;
   constructor(
-    protected commentsService: CommentsService,
-    protected commentsQueryRepository: CommentsQueryRepository,
-  ) {}
+    commentsQueryRepository: CommentsQueryRepository,
+    private commandBus: CommandBus,
+  ) {
+    this.commentsQueryRepository = commentsQueryRepository;
+    console.log('CONTROLLER created');
+  }
 
   @UseGuards(AccessRolesGuard)
   @Get(':id')
@@ -59,12 +66,6 @@ export class CommentsController {
     @Body() inputModel: UpdateLikesModule,
     @Param('id') commentId: string,
   ) {
-    const upData = {
-      likeStatus: inputModel.likeStatus,
-      userId: req.user.userId,
-    };
-
-    const likeStatus = inputModel.likeStatus;
     if (!uuidValidate(commentId)) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
@@ -75,12 +76,18 @@ export class CommentsController {
     if (!comment) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
     }
-
-    const updateLikeStatus = await this.commentsService.updateLikeStatus(
-      commentId,
-      req.user.userId,
-      inputModel.likeStatus,
+    const updateLikeStatus = await this.commandBus.execute(
+      new UpdateLikeByCommentCommand(
+        commentId,
+        req.user.userId,
+        inputModel.likeStatus,
+      ),
     );
+    // const updateLikeStatus = await this.commentsService.updateLikeStatus(
+    //   commentId,
+    //   req.user.userId,
+    //   inputModel.likeStatus,
+    // );
 
     if (!updateLikeStatus) {
       throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
@@ -116,9 +123,13 @@ export class CommentsController {
       ]);
     }
 
-    const updateComment = await this.commentsService.updateComment(
-      commentId,
-      inputModel,
+    // const updateComment = await this.commentsService.updateComment(
+    //   commentId,
+    //   inputModel,
+    // );
+
+    const updateComment = await this.commandBus.execute(
+      new UpdateCommentCommand(commentId, inputModel),
     );
 
     if (!updateComment) {
@@ -152,9 +163,11 @@ export class CommentsController {
         { message: 'comment not found', field: 'comment' },
       ]);
     }
+    const deleteComment = await this.commandBus.execute(
+      new DeleteCommentCommand(commentId),
+    );
+    //const deletePost = this.commentsService.deleteCommentById(commentId);
 
-    const deletePost = this.commentsService.deleteCommentById(commentId);
-
-    return deletePost;
+    return deleteComment;
   }
 }

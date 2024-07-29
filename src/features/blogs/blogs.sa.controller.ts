@@ -32,7 +32,6 @@ import { DeletePostByBlogCommand } from './application/use-cases/delete.post.by.
 
 @Controller({ path: 'sa/blogs', scope: Scope.REQUEST })
 export class BlogsSAController {
-  private readonly blogsService;
   private readonly blogsSaQueryRepository;
   constructor(
     blogsSaQueryRepository: BlogsSaQueryRepository,
