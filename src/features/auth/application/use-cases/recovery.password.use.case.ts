@@ -1,11 +1,9 @@
-import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { EmailAdapter } from '../../adapters/email-adapter';
-import { LoginOrEmailModel } from '../../models/input/LoginAuthUserModel';
 import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
+import { AuthRepository } from '../../repository/auth.repository';
 import { User } from '../../../../db/entitys/user.entity';
 import { PasswordRecovery } from '../../../../db/entitys/password.recovery.entity';
 

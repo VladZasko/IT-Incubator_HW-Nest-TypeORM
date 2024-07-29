@@ -11,9 +11,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { UsersService } from './users.servis';
+import { UsersService } from './application/users.servis';
 import { QueryUserModel } from './models/input/QueryUserModule';
-import { UsersQueryRepository } from './users.query.repository';
+import { UsersQueryRepository } from './repository/users.query.repository';
 import { CreateUserModel } from './models/input/CreateUserModel';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { mapServiceCodeToHttpStatus } from '../auth/mapper/status-code-mapper';

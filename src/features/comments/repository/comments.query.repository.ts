@@ -1,18 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { ObjectId } from 'mongodb';
-import {
-  CommentDBType,
-  CommentDocument,
-} from '../../db/schemes/comments.schemes';
-import { commentQueryMapper } from './mappers/mappers';
+import { commentQueryMapper } from '../mappers/mappers';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Post } from '../../db/entitys/post.entity';
-import { Comment } from '../../db/entitys/comments.entity';
-import { Like } from '../../db/entitys/like.entity';
-import { postQueryMapper } from '../posts/mappers/mappers';
+import { Post } from '../../../db/entitys/post.entity';
+import { Comment } from '../../../db/entitys/comments.entity';
+import { Like } from '../../../db/entitys/like.entity';
 @Injectable()
 export class CommentsQueryRepository {
   constructor(

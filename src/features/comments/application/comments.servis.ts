@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CommentsRepository } from './comments.repository';
-import { UpdateFeedbackModuleModel } from './models/input/UpdateFeedbackModule';
-import { CommentViewModel } from './models/output/CommentViewModel';
-import { LikesStatus } from '../posts/models/output/PostsViewModel';
+import { CommentsRepository } from '../repository/comments.repository';
+import { UpdateFeedbackModuleModel } from '../models/input/UpdateFeedbackModule';
+import { CommentViewModel } from '../models/output/CommentViewModel';
+import { LikesStatus } from '../../posts/models/output/PostsViewModel';
 import { v4 as uuidv4 } from 'uuid';
-import { Like } from '../../db/entitys/like.entity';
+import { Like } from '../../../db/entitys/like.entity';
 
 @Injectable()
 export class CommentsService {

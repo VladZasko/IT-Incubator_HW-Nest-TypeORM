@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SecurityDevicesRepository } from './security.devices.repository';
+import { SecurityDevicesRepository } from '../repository/security.devices.repository';
 @Injectable()
 export class SecurityDevicesService {
   constructor(protected securityDevicesRepository: SecurityDevicesRepository) {}

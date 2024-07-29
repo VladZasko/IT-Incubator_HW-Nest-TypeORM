@@ -9,7 +9,7 @@ import { applyAppSettings } from '../../../src/settings/apply.app.settings';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { BlogTestMeneger } from '../blogs/utils/blogTestMeneger';
 import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
-import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
+import { AuthQueryRepository } from '../../../src/features/auth/repository/auth.query.repository';
 import { AuthTestManager } from '../auth/utils/authTestManager';
 import { dataTestUserAuth } from '../auth/dataForTest/dataTestforAuth';
 import { dataTestUserCreate01 } from '../users/dataForTest/dataTestforUser';

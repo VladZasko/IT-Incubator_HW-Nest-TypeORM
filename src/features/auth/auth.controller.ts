@@ -17,7 +17,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { v4 as uuidv4 } from 'uuid';
 import { newPasswordModel } from './models/input/newPasswordModel';
 import { CreateUserModel } from '../users/models/input/CreateUserModel';
-import { AuthQueryRepository } from './auth.query.repository';
+import { AuthQueryRepository } from './repository/auth.query.repository';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { mapServiceCodeToHttpStatus } from './mapper/status-code-mapper';
 import { CreateUserCommand } from './application/use-cases/create.user.use.case';

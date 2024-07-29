@@ -1,11 +1,9 @@
-import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { EmailAdapter } from '../../adapters/email-adapter';
 import { v4 as uuidv4 } from 'uuid';
 import { add } from 'date-fns/add';
 import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
-import { BadRequestException } from '@nestjs/common';
+import { AuthRepository } from '../../repository/auth.repository';
 
 export class ResendingConfirmEmailCommand {
   constructor(public email: string) {}

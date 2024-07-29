@@ -1,8 +1,7 @@
-import { AuthMongoRepository } from '../../auth.mongo.repository';
 import { AuthService } from '../auth.service';
 import * as bcrypt from 'bcrypt';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
+import { AuthRepository } from '../../repository/auth.repository';
 import { User } from '../../../../db/entitys/user.entity';
 import { NotFoundException } from '@nestjs/common';
 

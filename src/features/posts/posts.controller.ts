@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -14,20 +13,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { PostsQueryRepository } from './posts.query.repository';
-import { PostsService } from './posts.servis';
+import { PostsQueryRepository } from './repository/posts.query.repository';
+import { PostsService } from './application/posts.servis';
 import { QueryPostsModel } from './models/input/QueryPostsModule';
-import { CreatePostServiceModel } from './models/input/CreatePostModel';
-import { UpdatePostModel } from './models/input/UpdatePostModule';
 import { QueryCommentModule } from '../comments/models/input/QueryCommentModule';
-import { BlogsRepository } from '../blogs/blogs.repository';
 import { CreateCommentModel } from '../comments/models/input/CreateCommentModel';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthQueryRepository } from '../auth/auth.query.repository';
+import { AuthQueryRepository } from '../auth/repository/auth.query.repository';
 import { UpdateLikesModule } from '../comments/models/input/UpdateLikesModule';
-import { ObjectId } from 'mongodb';
 import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
-import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
 import { IdParamModel } from './models/input/IdParamModel';
 import { validate as uuidValidate } from 'uuid';
 

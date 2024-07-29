@@ -1,13 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { ObjectId } from 'mongodb';
-import { UserDBType, UserDocument } from '../../db/schemes/users.schemes';
-import { UsersViewModel } from './models/output/UsersViewModel';
-import { userMapper } from './mappers/mappers';
+import { UsersViewModel } from '../models/output/UsersViewModel';
+import { userMapper } from '../mappers/mappers';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { User } from '../../db/entitys/user.entity';
+import { User } from '../../../db/entitys/user.entity';
 
 @Injectable()
 export class UsersRepository {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserModel } from '../../../users/models/input/CreateUserModel';
-import { AuthRepository } from '../../auth.repository';
+import { AuthRepository } from '../../repository/auth.repository';
 import { RefreshTokenMeta } from '../../../../db/entitys/refresh.token.meta.entity';
 
 export class RefreshAndAccessTokenCommand {

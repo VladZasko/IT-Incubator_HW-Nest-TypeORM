@@ -6,36 +6,26 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BlogsController } from './features/blogs/blogs.controller';
-import { BlogsService } from './features/blogs/blogs.servis';
-import { BlogsRepository } from './features/blogs/blogs.repository';
+import { BlogsService } from './features/blogs/application/blogs.servis';
 import { MongooseModule } from '@nestjs/mongoose';
-import { BlogDBType, BlogSchema } from './db/schemes/blogs.schemes';
-import { BlogsQueryRepository } from './features/blogs/blogs.query.repository';
-import { PostDBType, PostSchema } from './db/schemes/posts.schemes';
+import { BlogsQueryRepository } from './features/blogs/repository/blogs.query.repository';
 import { PostsController } from './features/posts/posts.controller';
-import { PostsService } from './features/posts/posts.servis';
-import { PostsRepository } from './features/posts/posts.repository';
-import { PostsQueryRepository } from './features/posts/posts.query.repository';
+import { PostsService } from './features/posts/application/posts.servis';
+import { PostsRepository } from './features/posts/repository/posts.repository';
+import { PostsQueryRepository } from './features/posts/repository/posts.query.repository';
 import { DeleteAllData } from './routes/tests';
 import { CommentsController } from './features/comments/comments.controller';
-import { CommentsQueryRepository } from './features/comments/comments.query.repository';
-import { CommentsService } from './features/comments/comments.servis';
-import { CommentsRepository } from './features/comments/comments.repository';
-import { CommentDBType, CommentSchema } from './db/schemes/comments.schemes';
-import { UserDBType, UserSchema } from './db/schemes/users.schemes';
+import { CommentsQueryRepository } from './features/comments/repository/comments.query.repository';
+import { CommentsService } from './features/comments/application/comments.servis';
+import { CommentsRepository } from './features/comments/repository/comments.repository';
 import { UsersController } from './features/users/users.controller';
-import { UsersService } from './features/users/users.servis';
-import { UsersRepository } from './features/users/users.repository';
-import { UsersQueryRepository } from './features/users/users.query.repository';
+import { UsersService } from './features/users/application/users.servis';
+import { UsersRepository } from './features/users/repository/users.repository';
+import { UsersQueryRepository } from './features/users/repository/users.query.repository';
 import { JwtModule } from '@nestjs/jwt';
 import * as process from 'process';
-import {
-  RefreshTokensMetaDBType,
-  RefreshTokensMetaSchema,
-} from './db/schemes/token.schemes';
 import { AuthController } from './features/auth/auth.controller';
-import { AuthMongoRepository } from './features/auth/auth.mongo.repository';
-import { AuthQueryRepository } from './features/auth/auth.query.repository';
+import { AuthQueryRepository } from './features/auth/repository/auth.query.repository';
 import { LocalStrategy } from './features/auth/strategies/local.strategy';
 import { JwtStrategy } from './features/auth/strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
@@ -51,18 +41,17 @@ import { AuthService } from './features/auth/application/auth.service';
 import { NewPasswordUseCase } from './features/auth/application/use-cases/new.password.use.case';
 import { ResendingConfirmEmailUseCase } from './features/auth/application/use-cases/resending.confirm.email.use.case';
 import { AccessRolesGuard } from './features/auth/guards/access.roles.guard';
-import { IsBlogIdExistConstraint } from './utils/customDecorators/BlogIdCustomDecorator';
 import { RefreshTokenGuard } from './features/auth/guards/refresh-token.guard';
 import { SecurityDevicesController } from './features/securityDevices/security.devices.controller';
-import { SecurityDevicesService } from './features/securityDevices/security.devices.servis';
-import { SecurityDevicesQueryRepository } from './features/securityDevices/security.devices.query.repository';
-import { SecurityDevicesRepository } from './features/securityDevices/security.devices.repository';
+import { SecurityDevicesService } from './features/securityDevices/application/security.devices.servis';
+import { SecurityDevicesQueryRepository } from './features/securityDevices/repository/security.devices.query.repository';
+import { SecurityDevicesRepository } from './features/securityDevices/repository/security.devices.repository';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { AuthRepository } from './features/auth/auth.repository';
-import { BlogsSaRepository } from './features/blogs/blogs.sa.repository';
+import { AuthRepository } from './features/auth/repository/auth.repository';
+import { BlogsSaRepository } from './features/blogs/repository/blogs.sa.repository';
 import { BlogsSAController } from './features/blogs/blogs.sa.controller';
-import { BlogsSaQueryRepository } from './features/blogs/blogs.sa.query.repository';
+import { BlogsSaQueryRepository } from './features/blogs/repository/blogs.sa.query.repository';
 import { User } from './db/entitys/user.entity';
 import { EmailConfirmation } from './db/entitys/email.confirmatiom.entity';
 import { PasswordRecovery } from './db/entitys/password.recovery.entity';
@@ -71,6 +60,7 @@ import { Blog } from './db/entitys/blog.entity';
 import { Post } from './db/entitys/post.entity';
 import { Like } from './db/entitys/like.entity';
 import { Comment } from './db/entitys/comments.entity';
+import { CreateBlogUseCase } from './features/blogs/application/use-cases/create.blog.use.case';
 
 const dbName = 'blogs-hws';
 
@@ -111,28 +101,6 @@ export const options: TypeOrmModuleOptions = {
     MongooseModule.forRoot(
       process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
     ),
-    MongooseModule.forFeature([
-      {
-        name: BlogDBType.name,
-        schema: BlogSchema,
-      },
-      {
-        name: PostDBType.name,
-        schema: PostSchema,
-      },
-      {
-        name: CommentDBType.name,
-        schema: CommentSchema,
-      },
-      {
-        name: UserDBType.name,
-        schema: UserSchema,
-      },
-      {
-        name: RefreshTokensMetaDBType.name,
-        schema: RefreshTokensMetaSchema,
-      },
-    ]),
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -163,7 +131,6 @@ export const options: TypeOrmModuleOptions = {
     // },
     AppService,
     BlogsService,
-    BlogsRepository,
     BlogsSaRepository,
     BlogsQueryRepository,
     BlogsSaQueryRepository,
@@ -177,7 +144,6 @@ export const options: TypeOrmModuleOptions = {
     UsersRepository,
     UsersQueryRepository,
     AuthRepository,
-    AuthMongoRepository,
     AuthQueryRepository,
     LocalStrategy,
     JwtStrategy,
@@ -185,12 +151,12 @@ export const options: TypeOrmModuleOptions = {
     EmailAdapter,
     AuthService,
     AccessRolesGuard,
-    IsBlogIdExistConstraint,
     RefreshTokenGuard,
     SecurityDevicesService,
     SecurityDevicesQueryRepository,
     SecurityDevicesRepository,
     ...useCases,
+    CreateBlogUseCase,
   ],
 })
 export class AppModule {}

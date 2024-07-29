@@ -10,7 +10,7 @@ import { EmailAdapterDto } from '../../models/input/EmailAdapterDto';
 import { Result } from '../../utils/result.type';
 import { AuthService } from '../auth.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
+import { AuthRepository } from '../../repository/auth.repository';
 import { User } from '../../../../db/entitys/user.entity';
 import { EmailConfirmation } from '../../../../db/entitys/email.confirmatiom.entity';
 

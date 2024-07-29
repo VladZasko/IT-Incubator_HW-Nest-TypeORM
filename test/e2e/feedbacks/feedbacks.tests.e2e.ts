@@ -25,7 +25,7 @@ import { AppModule } from '../../../src/app.module';
 import { applyAppSettings } from '../../../src/settings/apply.app.settings';
 import { UsersTestManager } from '../users/utils/usersTestManager';
 import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
-import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
+import { AuthQueryRepository } from '../../../src/features/auth/repository/auth.query.repository';
 
 describe('/feedback tests', () => {
   let app: INestApplication;

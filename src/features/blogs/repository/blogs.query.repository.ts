@@ -1,13 +1,13 @@
 import { Injectable, Scope } from '@nestjs/common';
-import { QueryBlogsModel } from './models/input/QueryBlogsModules';
-import { BlogsViewModel } from './models/output/BlogsViewModel';
-import { postQueryMapper } from '../posts/mappers/mappers';
-import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
+import { QueryBlogsModel } from '../models/input/QueryBlogsModules';
+import { BlogsViewModel } from '../models/output/BlogsViewModel';
+import { postQueryMapper } from '../../posts/mappers/mappers';
+import { QueryPostsModel } from '../../posts/models/input/QueryPostsModule';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Blog } from '../../db/entitys/blog.entity';
-import { Post } from '../../db/entitys/post.entity';
-import { Like } from '../../db/entitys/like.entity';
+import { Blog } from '../../../db/entitys/blog.entity';
+import { Post } from '../../../db/entitys/post.entity';
+import { Like } from '../../../db/entitys/like.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogsQueryRepository {

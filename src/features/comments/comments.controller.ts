@@ -12,8 +12,8 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { CommentsService } from './comments.servis';
-import { CommentsQueryRepository } from './comments.query.repository';
+import { CommentsService } from './application/comments.servis';
+import { CommentsQueryRepository } from './repository/comments.query.repository';
 import { UpdateLikesModule } from './models/input/UpdateLikesModule';
 import { ObjectId } from 'mongodb';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

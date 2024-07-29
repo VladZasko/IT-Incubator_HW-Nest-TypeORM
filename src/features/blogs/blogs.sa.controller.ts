@@ -14,17 +14,17 @@ import {
   Scope,
   UseGuards,
 } from '@nestjs/common';
-import { BlogsService } from './blogs.servis';
+import { BlogsService } from './application/blogs.servis';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
 import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
-import { ObjectId } from 'mongodb';
 import { BasicAuthGuard } from '../auth/guards/basic-auth.guard';
-import { AccessRolesGuard } from '../auth/guards/access.roles.guard';
 import { validate as uuidValidate } from 'uuid';
-import { BlogsSaQueryRepository } from './blogs.sa.query.repository';
+import { BlogsSaQueryRepository } from './repository/blogs.sa.query.repository';
 import { BlogIdModel } from './models/input/BlogIdModel';
 import { UpdatePostByBlogModel } from './models/input/UpdatePostByBlogModel';
+import { CommandBus } from '@nestjs/cqrs';
+import { CreateBlogCommand } from './application/use-cases/create.blog.use.case';
 
 @Controller({ path: 'sa/blogs', scope: Scope.REQUEST })
 export class BlogsSAController {
@@ -33,6 +33,7 @@ export class BlogsSAController {
   constructor(
     blogsService: BlogsService,
     blogsSaQueryRepository: BlogsSaQueryRepository,
+    private commandBus: CommandBus,
   ) {
     this.blogsService = blogsService;
     this.blogsSaQueryRepository = blogsSaQueryRepository;
@@ -83,9 +84,11 @@ export class BlogsSAController {
   @UseGuards(BasicAuthGuard)
   @Post()
   async createBlog(@Body() inputModel: CreateBlogModel) {
-    const newBlog = await this.blogsService.createBlog(inputModel);
+    //const newBlog = await this.blogsService.createBlog(inputModel);
 
-    return newBlog;
+    return this.commandBus.execute(new CreateBlogCommand(inputModel));
+
+    //return newBlog;
   }
 
   @UseGuards(BasicAuthGuard)

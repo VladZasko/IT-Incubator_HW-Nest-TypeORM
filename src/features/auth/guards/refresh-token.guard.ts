@@ -6,17 +6,10 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { InjectModel } from '@nestjs/mongoose';
-import {
-  RefreshTokensMetaDBType,
-  RefreshTokensMetaDocument,
-} from '../../../db/schemes/token.schemes';
-import { Model } from 'mongoose';
-import { AuthQueryRepository } from '../auth.query.repository';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { RefreshTokenMeta } from '../../../db/entitys/refresh.token.meta.entity';
-import { AuthRepository } from '../auth.repository';
+import { AuthRepository } from '../repository/auth.repository';
 
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
@@ -62,16 +55,6 @@ export class RefreshTokenGuard implements CanActivate {
       this.configService.get('auth.JWT_SECRET'),
     );
 
-    // const refreshTokenMeta = await this.refreshTokenMetaModel.findOne({
-    //   deviceId: user.deviceId,
-    // });
-
-    // const query = `
-    //     SELECT "issuetAt", "deviceId", "ip", "deviceName", "userId", "id"
-    //         FROM public."RefreshTokenMeta"
-    //         WHERE "deviceId" = $1;
-    //     `;
-
     const refreshTokenMeta = await this.refreshTokenMetaRepository.findOneBy({
       deviceId: user.deviceId,
     });
@@ -79,15 +62,6 @@ export class RefreshTokenGuard implements CanActivate {
     console.log(refreshTokenMeta);
 
     if (!refreshTokenMeta) throw new UnauthorizedException();
-
-    // if (refreshTokenMeta) {
-    //   throw new UnauthorizedException([
-    //     {
-    //       message: 'Access Denied. No refresh token provided.',
-    //       field: 'refreshToken',
-    //     },
-    //   ]);
-    // }
 
     if (refreshTokenMeta.issuedAt !== user.issuedAt) {
       throw new UnauthorizedException([

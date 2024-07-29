@@ -1,19 +1,12 @@
 import { Injectable, Scope } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { BlogDBType, BlogDocument } from '../../db/schemes/blogs.schemes';
-import { Model } from 'mongoose';
-import { QueryBlogsModel } from './models/input/QueryBlogsModules';
-import { blogMapper } from './mappers/mapper';
-import { BlogsViewModel } from './models/output/BlogsViewModel';
-import { ObjectId } from 'mongodb';
-import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
-import { postQueryMapper } from '../posts/mappers/mappers';
-import { QueryPostsModel } from '../posts/models/input/QueryPostsModule';
+import { QueryBlogsModel } from '../models/input/QueryBlogsModules';
+import { postQueryMapper } from '../../posts/mappers/mappers';
+import { QueryPostsModel } from '../../posts/models/input/QueryPostsModule';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Blog } from '../../db/entitys/blog.entity';
-import { Post } from '../../db/entitys/post.entity';
-import { Like } from '../../db/entitys/like.entity';
+import { Blog } from '../../../db/entitys/blog.entity';
+import { Post } from '../../../db/entitys/post.entity';
+import { Like } from '../../../db/entitys/like.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogsSaQueryRepository {

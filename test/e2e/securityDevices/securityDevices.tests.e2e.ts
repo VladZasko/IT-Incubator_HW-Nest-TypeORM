@@ -12,7 +12,7 @@ import {
 } from '../auth/dataForTest/dataTestforAuth';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
-import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
+import { AuthQueryRepository } from '../../../src/features/auth/repository/auth.query.repository';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../../src/app.module';
 import { applyAppSettings } from '../../../src/settings/apply.app.settings';

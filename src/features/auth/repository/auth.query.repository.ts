@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { UsersAuthViewModel } from './models/output/UsersViewModel';
+import { UsersAuthViewModel } from '../models/output/UsersViewModel';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { User } from '../../db/entitys/user.entity';
+import { User } from '../../../db/entitys/user.entity';
 @Injectable()
 export class AuthQueryRepository {
   constructor(

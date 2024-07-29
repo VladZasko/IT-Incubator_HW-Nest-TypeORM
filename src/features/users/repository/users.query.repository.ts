@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { QueryUserModel } from './models/input/QueryUserModule';
-import { UsersViewModelGetAllUsers } from './models/output/UsersViewModel';
-import { userMapper } from './mappers/mappers';
-import { LoginOrEmailModel } from '../auth/models/input/LoginAuthUserModel';
+import { QueryUserModel } from '../models/input/QueryUserModule';
+import { UsersViewModelGetAllUsers } from '../models/output/UsersViewModel';
+import { userMapper } from '../mappers/mappers';
+import { LoginOrEmailModel } from '../../auth/models/input/LoginAuthUserModel';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { User } from '../../db/entitys/user.entity';
+import { User } from '../../../db/entitys/user.entity';
 @Injectable()
 export class UsersQueryRepository {
   constructor(

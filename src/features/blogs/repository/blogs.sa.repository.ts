@@ -1,20 +1,15 @@
 import { Injectable, Scope } from '@nestjs/common';
-import { BlogDBType } from '../../db/schemes/blogs.schemes';
-import { UpdateBlogModel } from './models/input/UpdateBlogModule';
-import { CreateBlogReposModel } from './models/input/CreateBlogModel';
-import { CreatePostBlogRepoModel } from './models/input/CreatePostByBlogModel';
+import { UpdateBlogModel } from '../models/input/UpdateBlogModule';
 import {
   LikesStatus,
   PostsViewModel,
-} from '../posts/models/output/PostsViewModel';
-import { BlogsViewModel } from './models/output/BlogsViewModel';
+} from '../../posts/models/output/PostsViewModel';
+import { BlogsViewModel } from '../models/output/BlogsViewModel';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Not, Repository } from 'typeorm';
-import { BlogIdModel } from './models/input/BlogIdModel';
-import { UpdatePostByBlogModel } from './models/input/UpdatePostByBlogModel';
-import { RefreshTokenMeta } from '../../db/entitys/refresh.token.meta.entity';
-import { Blog } from '../../db/entitys/blog.entity';
-import { Post } from '../../db/entitys/post.entity';
+import { DataSource, Repository } from 'typeorm';
+import { BlogIdModel } from '../models/input/BlogIdModel';
+import { Blog } from '../../../db/entitys/blog.entity';
+import { Post } from '../../../db/entitys/post.entity';
 
 @Injectable({ scope: Scope.DEFAULT })
 export class BlogsSaRepository {
@@ -65,7 +60,7 @@ export class BlogsSaRepository {
     });
   }
 
-  async getPost(id: string): Promise<BlogDBType | null> {
+  async getPost(id: string): Promise<Blog | null> {
     const query = `
             SELECT *
             FROM public."Posts"

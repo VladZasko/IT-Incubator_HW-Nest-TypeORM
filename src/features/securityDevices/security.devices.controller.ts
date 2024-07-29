@@ -12,9 +12,9 @@ import {
 } from '@nestjs/common';
 import { SecurityDevicesViewModel } from './models/output/securityDevicesViewModel';
 import { RefreshTokenGuard } from '../auth/guards/refresh-token.guard';
-import { SecurityDevicesService } from './security.devices.servis';
-import { SecurityDevicesRepository } from './security.devices.repository';
-import { SecurityDevicesQueryRepository } from './security.devices.query.repository';
+import { SecurityDevicesService } from './application/security.devices.servis';
+import { SecurityDevicesRepository } from './repository/security.devices.repository';
+import { SecurityDevicesQueryRepository } from './repository/security.devices.query.repository';
 import { DeviceIdModel } from './models/DeviceIdModel';
 
 @UseGuards(RefreshTokenGuard)

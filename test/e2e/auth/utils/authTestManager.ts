@@ -4,7 +4,7 @@ import { CreateUserModel } from '../../../../src/features/users/models/input/Cre
 import { EmailAdapter } from '../../../../src/features/auth/adapters/email-adapter';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { HttpStatusType } from '../../../utils/utils';
-import { AuthQueryRepository } from '../../../../src/features/auth/auth.query.repository';
+import { AuthQueryRepository } from '../../../../src/features/auth/repository/auth.query.repository';
 import { dataTestUserCreate01 } from '../../users/dataForTest/dataTestforUser';
 import { RouterPaths } from '../../../../src/routerPaths';
 import { User } from '../../../../src/db/entitys/user.entity';

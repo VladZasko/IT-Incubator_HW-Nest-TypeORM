@@ -1,5 +1,4 @@
-import { IsMongoId, Length, Matches } from 'class-validator';
-import { IsRealBlogId } from '../../../../utils/customDecorators/BlogIdCustomDecorator';
+import { IsString, Length, Matches } from 'class-validator';
 
 export class CreatePostServiceModel {
   /**
@@ -17,6 +16,6 @@ export class CreatePostServiceModel {
   @Length(1, 1000)
   content: string;
 
-  @IsRealBlogId()
+  @IsString()
   blogId: string;
 }

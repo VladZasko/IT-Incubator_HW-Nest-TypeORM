@@ -14,9 +14,9 @@ import {
   Scope,
   UseGuards,
 } from '@nestjs/common';
-import { BlogsService } from './blogs.servis';
+import { BlogsService } from './application/blogs.servis';
 import { QueryBlogsModel } from './models/input/QueryBlogsModules';
-import { BlogsQueryRepository } from './blogs.query.repository';
+import { BlogsQueryRepository } from './repository/blogs.query.repository';
 import { CreateBlogModel } from './models/input/CreateBlogModel';
 import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
 import { ObjectId } from 'mongodb';

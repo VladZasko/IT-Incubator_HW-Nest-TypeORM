@@ -3,7 +3,7 @@ import { UsersRepoViewModel } from '../../../users/models/output/UsersViewModel'
 import { userAuthDBMapper } from '../../mapper/mappers';
 import { AuthService } from '../auth.service';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { AuthRepository } from '../../auth.repository';
+import { AuthRepository } from '../../repository/auth.repository';
 
 export class CheckCredentialsCommand {
   constructor(public checkCredentialsDto: LoginAuthUserModel) {}

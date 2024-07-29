@@ -1,23 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { PostsViewModel } from './models/output/PostsViewModel';
-import { ObjectId } from 'mongodb';
-import { QueryPostsModel } from './models/input/QueryPostsModule';
-import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
-import { postQueryMapper } from './mappers/mappers';
-import { QueryCommentModule } from '../comments/models/input/QueryCommentModule';
-import { CommentViewModelGetAllComments } from '../comments/models/output/CommentViewModel';
-import {
-  CommentDBType,
-  CommentDocument,
-} from '../../db/schemes/comments.schemes';
-import { commentQueryMapper } from '../comments/mappers/mappers';
+import { PostsViewModel } from '../models/output/PostsViewModel';
+import { QueryPostsModel } from '../models/input/QueryPostsModule';
+import { postQueryMapper } from '../mappers/mappers';
+import { QueryCommentModule } from '../../comments/models/input/QueryCommentModule';
+import { CommentViewModelGetAllComments } from '../../comments/models/output/CommentViewModel';
+import { commentQueryMapper } from '../../comments/mappers/mappers';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Post } from '../../db/entitys/post.entity';
-import { Like } from '../../db/entitys/like.entity';
-import { Comment } from '../../db/entitys/comments.entity';
+import { Post } from '../../../db/entitys/post.entity';
+import { Like } from '../../../db/entitys/like.entity';
+import { Comment } from '../../../db/entitys/comments.entity';
 @Injectable()
 export class PostsQueryRepository {
   constructor(

@@ -1,26 +1,17 @@
 import { Injectable, NotFoundException, Scope } from '@nestjs/common';
-import { BlogsRepository } from './blogs.repository';
-import { BlogsViewModel } from './models/output/BlogsViewModel';
-import { UpdateBlogModel } from './models/input/UpdateBlogModule';
-import { CreatePostBlogModel } from './models/input/CreatePostByBlogModel';
-import { CreateBlogModel } from './models/input/CreateBlogModel';
-import { PostsViewModel } from '../posts/models/output/PostsViewModel';
+import { UpdateBlogModel } from '../models/input/UpdateBlogModule';
+import { CreatePostBlogModel } from '../models/input/CreatePostByBlogModel';
+import { PostsViewModel } from '../../posts/models/output/PostsViewModel';
 import { v4 as uuidv4 } from 'uuid';
-import { BlogsSaRepository } from './blogs.sa.repository';
-import { BlogIdModel } from './models/input/BlogIdModel';
-import { UpdatePostByBlogModel } from './models/input/UpdatePostByBlogModel';
-import { Blog } from '../../db/entitys/blog.entity';
-import { Post } from '../../db/entitys/post.entity';
+import { BlogsSaRepository } from '../repository/blogs.sa.repository';
+import { BlogIdModel } from '../models/input/BlogIdModel';
+import { UpdatePostByBlogModel } from '../models/input/UpdatePostByBlogModel';
+import { Post } from '../../../db/entitys/post.entity';
 
 @Injectable({ scope: Scope.DEFAULT })
 export class BlogsService {
-  private readonly blogsRepository;
   private readonly blogsSaRepository;
-  constructor(
-    blogsRepository: BlogsRepository,
-    blogsSaRepository: BlogsSaRepository,
-  ) {
-    this.blogsRepository = blogsRepository;
+  constructor(blogsSaRepository: BlogsSaRepository) {
     this.blogsSaRepository = blogsSaRepository;
     console.log('SERVICE created');
   }
@@ -43,22 +34,6 @@ export class BlogsService {
     newPostByBlog.createdAt = new Date().toISOString();
 
     return await this.blogsSaRepository.createPostBlog(newPostByBlog);
-  }
-  async createBlog(
-    createBlogDto: CreateBlogModel,
-  ): Promise<null | BlogsViewModel> {
-    const newBlog = new Blog();
-
-    newBlog.id = uuidv4();
-    newBlog.name = createBlogDto.name;
-    newBlog.description = createBlogDto.description;
-    newBlog.websiteUrl = createBlogDto.websiteUrl;
-    newBlog.createdAt = new Date().toISOString();
-    newBlog.isMembership = false;
-
-    const createBlog = await this.blogsSaRepository.createBlog(newBlog);
-
-    return createBlog;
   }
   async updateBlog(id: string, updateData: UpdateBlogModel): Promise<boolean> {
     const updateBlog = await this.blogsSaRepository.getBlog(id);

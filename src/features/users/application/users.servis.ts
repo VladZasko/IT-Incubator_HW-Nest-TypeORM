@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { UsersRepository } from './users.repository';
-import { CreateUserModel } from './models/input/CreateUserModel';
-import { UsersViewModel } from './models/output/UsersViewModel';
+import { UsersRepository } from '../repository/users.repository';
+import { CreateUserModel } from '../models/input/CreateUserModel';
+import { UsersViewModel } from '../models/output/UsersViewModel';
 import * as bcrypt from 'bcrypt';
-import { UsersQueryRepository } from './users.query.repository';
-import { ResultCode } from './utils/result-code';
-import { ERRORS_MESSAGES } from '../../utils/errors';
+import { UsersQueryRepository } from '../repository/users.query.repository';
+import { ResultCode } from '../utils/result-code';
+import { ERRORS_MESSAGES } from '../../../utils/errors';
 import { v4 as uuidv4 } from 'uuid';
-import { User } from '../../db/entitys/user.entity';
+import { User } from '../../../db/entitys/user.entity';
 
 export type Result<T> = {
   resultCode: ResultCode;

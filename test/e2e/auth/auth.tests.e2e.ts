@@ -11,7 +11,7 @@ import { dataTestUserAuth } from './dataForTest/dataTestforAuth';
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../../src/app.module';
-import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
+import { AuthQueryRepository } from '../../../src/features/auth/repository/auth.query.repository';
 import { AuthTestManager } from './utils/authTestManager';
 import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
 import { applyAppSettings } from '../../../src/settings/apply.app.settings';

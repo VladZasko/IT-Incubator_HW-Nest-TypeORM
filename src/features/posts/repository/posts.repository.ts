@@ -1,28 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import {
-  LikesStatus,
-  NewestLikesType,
-  PostsViewModel,
-} from './models/output/PostsViewModel';
-import { ObjectId } from 'mongodb';
-import { PostDBType, PostDocument } from '../../db/schemes/posts.schemes';
-import { UpdatePostModel } from './models/input/UpdatePostModule';
-import {
-  CommentDBType,
-  CommentDocument,
-} from '../../db/schemes/comments.schemes';
-import { CreateCommentModelRepo } from '../comments/models/input/CreateCommentModel';
-import { CommentViewModel } from '../comments/models/output/CommentViewModel';
+import { LikesStatus } from '../models/output/PostsViewModel';
+import { CreateCommentModelRepo } from '../../comments/models/input/CreateCommentModel';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { BlogDBType } from '../../db/schemes/blogs.schemes';
-import { CreateBlogReposModel } from '../blogs/models/input/CreateBlogModel';
-import { BlogsViewModel } from '../blogs/models/output/BlogsViewModel';
-import { Like } from '../../db/entitys/like.entity';
-import { Comment } from '../../db/entitys/comments.entity';
-import { Post } from '../../db/entitys/post.entity';
+import { Like } from '../../../db/entitys/like.entity';
+import { Comment } from '../../../db/entitys/comments.entity';
+import { Post } from '../../../db/entitys/post.entity';
 @Injectable()
 export class PostsRepository {
   constructor(
