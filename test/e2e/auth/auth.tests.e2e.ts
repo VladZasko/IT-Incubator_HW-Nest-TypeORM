@@ -239,11 +239,10 @@ describe('/auth', () => {
 
     const data = {
       ...user.createEntity!,
-      confirmationCode: ' 123',
-      // emailConfirmation: {
-      //   ...user.createEntity!.emailConfirmation!,
-      //   confirmationCode: ' 123',
-      // },
+      emailConfirmation: {
+        ...user.createEntity!.emailConfirmation,
+        confirmationCode: ' 123',
+      },
     };
     await authTestManager.userEmailConfirmation(
       data,
@@ -382,7 +381,7 @@ describe('/auth', () => {
 
     const newPassword = {
       newPassword: 'string',
-      recoveryCode: recoveryCode.createEntity!.recoveryCode,
+      recoveryCode: recoveryCode.createEntity!.passwordRecovery.recoveryCode,
     };
 
     await request(httpServer)

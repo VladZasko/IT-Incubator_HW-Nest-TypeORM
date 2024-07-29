@@ -7,7 +7,7 @@ import { HttpStatusType } from '../../../utils/utils';
 import { AuthQueryRepository } from '../../../../src/features/auth/auth.query.repository';
 import { dataTestUserCreate01 } from '../../users/dataForTest/dataTestforUser';
 import { RouterPaths } from '../../../../src/routerPaths';
-import { UserDBType } from '../../../../src/db/schemes/users.schemes';
+import { User } from '../../../../src/db/entitys/user.entity';
 
 export class AuthTestManager {
   constructor(
@@ -33,11 +33,13 @@ export class AuthTestManager {
 
     let createdEntity;
     let refreshToken;
+
     if (expectedStatusCode === HttpStatus.OK) {
       createdEntity = result.body;
       refreshToken = result.header['set-cookie'];
       expect(createdEntity).toEqual(result.body);
     }
+
     return {
       response: result,
       createdEntity: createdEntity,
@@ -70,18 +72,18 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
       expect(user!.login).toBe(data.login);
-      expect(user!.isConfirmed).toBe(false);
+      expect(user!.emailConfirmation.isConfirmed).toBe(false);
     }
     return { response: response, createEntity: user };
   }
   async userEmailConfirmation(
-    data: any,
+    data: User,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
     expectedErrorsMessagesLength?: number,
   ) {
     const response = await request(this.app.getHttpServer())
       .post(`${RouterPaths.auth}/registration-confirmation`)
-      .send({ code: data.confirmationCode })
+      .send({ code: data.emailConfirmation.confirmationCode })
       .expect(expectedStatusCode);
 
     if (expectedStatusCode === HttpStatus.BAD_REQUEST) {
@@ -95,13 +97,13 @@ export class AuthTestManager {
         await this.authQueryRepository.findByLoginOrEmail(data.email);
 
       expect(userConfirmation!.login).toBe(data.login);
-      expect(userConfirmation!.isConfirmed).toBe(true);
+      expect(userConfirmation!.emailConfirmation.isConfirmed).toBe(true);
     }
 
     return { response: response };
   }
   async userEmailConfirmationResending(
-    data: any,
+    data: User,
     expectedStatusCode: HttpStatusType = HttpStatus.NO_CONTENT,
     expectedErrorsMessagesLength?: number,
   ) {
@@ -126,8 +128,8 @@ export class AuthTestManager {
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
       expect(userConfirmation!.login).toBe(data.login);
-      expect(userConfirmation!.confirmationCode).not.toBe(
-        data.confirmationCode,
+      expect(userConfirmation!.emailConfirmation.confirmationCode).not.toBe(
+        data.emailConfirmation.confirmationCode,
       );
     }
 
@@ -156,8 +158,8 @@ export class AuthTestManager {
     const user = await this.authQueryRepository.findByLoginOrEmail(email);
 
     if (expectedStatusCode === HttpStatus.NO_CONTENT) {
-      expect(user!.recoveryCode).toEqual(expect.any(String));
-      expect(user!.expirationDate).toEqual(expect.any(Date));
+      expect(user!.passwordRecovery.recoveryCode).toEqual(expect.any(String));
+      expect(user!.passwordRecovery.expirationDate).toEqual(expect.any(String));
     }
     return { response: response, createEntity: user };
   }

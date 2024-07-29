@@ -91,7 +91,7 @@ export class PostsController {
     const likeStatusData = req.userId;
 
     if (!uuidValidate(postId)) {
-      throw new NotFoundException([{ message: 'id not found', field: 'id' }]);
+      throw new BadRequestException([{ message: 'id incorrect', field: 'id' }]);
     }
     const post = await this.postsQueryRepository.getPostById(
       postId,

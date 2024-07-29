@@ -14,7 +14,7 @@ export class BlogTestMeneger {
     expectedErrorsMessagesLength?: number,
   ) {
     const response = await request(this.app.getHttpServer())
-      .post(RouterPaths.blogs)
+      .post(RouterPaths.blogsSa)
       .set('authorization', 'Basic YWRtaW46cXdlcnR5')
       .send(data)
       .expect(expectedStatusCode);
@@ -64,7 +64,7 @@ export class BlogTestMeneger {
     expectedErrorsMessagesLength?: number,
   ) {
     const response = await request(this.app.getHttpServer())
-      .post(`${RouterPaths.blogs}/${createdNewBlog01.id}/posts`)
+      .post(`${RouterPaths.blogsSa}/${createdNewBlog01.id}/posts`)
       .set('authorization', 'Basic YWRtaW46cXdlcnR5')
       .send(data)
       .expect(expectedStatusCode);
@@ -114,7 +114,7 @@ export class BlogTestMeneger {
     expectedErrorsMessagesLength?: number,
   ) {
     const response = await request(this.app.getHttpServer())
-      .put(`${RouterPaths.blogs}/${createdNewBlog01.id}`)
+      .put(`${RouterPaths.blogsSa}/${createdNewBlog01.id}`)
       .set('authorization', 'Basic YWRtaW46cXdlcnR5')
       .send(data)
       .expect(expectedStatusCode);

@@ -18,69 +18,63 @@ import {
 } from '../auth/dataForTest/dataTestforAuth';
 import { dataTestPostsCreate01 } from '../posts/dataForTest/dataTestforPost';
 import { dataTestBlogCreate01 } from '../blogs/dataForTest/dataTestforBlog';
-import {HttpStatus, INestApplication} from "@nestjs/common";
-import {BlogTestMeneger} from "../blogs/utils/blogTestMeneger";
-import {Test, TestingModule} from "@nestjs/testing";
-import {AppModule} from "../../../src/app.module";
-import {applyAppSettings} from "../../../src/settings/apply.app.settings";
-import {UsersTestManager} from "../users/utils/usersTestManager";
-import {EmailAdapter} from "../../../src/features/auth/adapters/email-adapter";
-import {AuthQueryRepository} from "../../../src/features/auth/auth.query.repository";
-import {PostsTestManager} from "../posts/utils/postsTestManager";
-
+import { HttpStatus, INestApplication } from '@nestjs/common';
+import { BlogTestMeneger } from '../blogs/utils/blogTestMeneger';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from '../../../src/app.module';
+import { applyAppSettings } from '../../../src/settings/apply.app.settings';
+import { UsersTestManager } from '../users/utils/usersTestManager';
+import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
+import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
 
 describe('/feedback tests', () => {
-    let app: INestApplication;
-    let httpServer;
-    let blogTestMeneger: BlogTestMeneger;
-    let feedbacksTestManager: FeedbacksTestManager;
-    let usersTestManager: UsersTestManager;
-    let emailAdapter: EmailAdapter;
-    let authQueryRepository: AuthQueryRepository;
-    let authTestManager: AuthTestManager;
-    let postsTestManager: PostsTestManager;
+  let app: INestApplication;
+  let httpServer;
+  let blogTestMeneger: BlogTestMeneger;
+  let feedbacksTestManager: FeedbacksTestManager;
+  let usersTestManager: UsersTestManager;
+  let emailAdapter: EmailAdapter;
+  let authQueryRepository: AuthQueryRepository;
+  let authTestManager: AuthTestManager;
 
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
+    app = moduleFixture.createNestApplication();
+    applyAppSettings(app);
+    await app.init();
 
-    beforeAll(async () => {
-      const moduleFixture: TestingModule = await Test.createTestingModule({
-          imports: [AppModule],
-      }).compile();
+    httpServer = app.getHttpServer();
 
-      app = moduleFixture.createNestApplication();
-      applyAppSettings(app);
-      await app.init();
-
-      httpServer = app.getHttpServer();
-
-      feedbacksTestManager = new FeedbacksTestManager(app);
-      blogTestMeneger = new BlogTestMeneger(app);
-      usersTestManager = new UsersTestManager(app);
-      postsTestManager = new PostsTestManager(app);
-      emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
-      authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
-      authTestManager = new AuthTestManager(
-          authQueryRepository,
-          app,
-          emailAdapter,
-      );
-
-    });
+    feedbacksTestManager = new FeedbacksTestManager(app);
+    blogTestMeneger = new BlogTestMeneger(app);
+    usersTestManager = new UsersTestManager(app);
+    emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
+    authQueryRepository =
+      moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+    authTestManager = new AuthTestManager(
+      authQueryRepository,
+      app,
+      emailAdapter,
+    );
+  });
 
   beforeEach(async () => {
     await request(httpServer).delete('/testing/all-data');
   });
 
   afterAll(async () => {
-      await app.close();
+    await app.close();
   });
 
   it('should return 200 and empty array', async () => {
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
 
     await request(httpServer)
       .get(`${RouterPaths.posts}/${post.createdEntity.id}/comments`)
@@ -103,10 +97,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
 
     const token = await authTestManager.createToken(dataTestUserAuth);
 
@@ -123,16 +117,16 @@ describe('/feedback tests', () => {
 
   it(`shouldn't create comment with incorrect JWT token`, async () => {
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
 
     await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
       post,
       `Bearer YWRtaW46cXdlcnR5`,
-        HttpStatus.UNAUTHORIZED,
+      HttpStatus.UNAUTHORIZED,
     );
 
     await request(httpServer)
@@ -150,17 +144,17 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       dataTestFeedbackCreate01,
       post,
       `Basic ${token.createdEntity.accessToken}`,
-        HttpStatus.UNAUTHORIZED,
+      HttpStatus.UNAUTHORIZED,
     );
 
     await request(httpServer)
@@ -178,17 +172,17 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       tooShortContent,
       post,
       token.createdEntity.accessToken,
-        HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST,
       1,
     );
 
@@ -207,17 +201,17 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     await feedbacksTestManager.createComment(
       tooLongContent,
       post,
       token.createdEntity.accessToken,
-        HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST,
       1,
     );
 
@@ -236,10 +230,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const result = await feedbacksTestManager.createComment(
@@ -264,10 +258,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
@@ -291,10 +285,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
@@ -320,10 +314,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comments = await feedbacksTestManager.createComments(
@@ -350,10 +344,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -366,7 +360,7 @@ describe('/feedback tests', () => {
       dataTestFeedbackUpdate,
       comment.createdEntity,
       `Bearer YWRtaW`,
-        HttpStatus.UNAUTHORIZED,
+      HttpStatus.UNAUTHORIZED,
     );
 
     await request(httpServer)
@@ -384,10 +378,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -400,7 +394,7 @@ describe('/feedback tests', () => {
       tooShortContent,
       comment.createdEntity,
       token.createdEntity.accessToken,
-        HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST,
       1,
     );
 
@@ -419,10 +413,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -435,7 +429,7 @@ describe('/feedback tests', () => {
       tooLongContent,
       comment.createdEntity,
       token.createdEntity.accessToken,
-        HttpStatus.BAD_REQUEST,
+      HttpStatus.BAD_REQUEST,
       1,
     );
 
@@ -455,10 +449,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate02);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
     const tokenUser2 = await authTestManager.createToken(dataTestUserAuth2);
 
@@ -472,7 +466,7 @@ describe('/feedback tests', () => {
       dataTestFeedbackUpdate,
       comment.createdEntity,
       tokenUser2.createdEntity.accessToken,
-        HttpStatus.FORBIDDEN,
+      HttpStatus.FORBIDDEN,
     );
 
     await request(httpServer)
@@ -490,10 +484,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -528,10 +522,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -543,7 +537,7 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       comment.createdEntity,
       `Basic ${token.createdEntity.accessToken}`,
-        HttpStatus.UNAUTHORIZED,
+      HttpStatus.UNAUTHORIZED,
     );
 
     await request(httpServer)
@@ -561,10 +555,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(
@@ -576,7 +570,7 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       '123',
       token.createdEntity.accessToken,
-        HttpStatus.NOT_FOUND,
+      HttpStatus.NOT_FOUND,
     );
 
     await request(httpServer)
@@ -595,10 +589,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate02);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const tokenUser1 = await authTestManager.createToken(dataTestUserAuth);
     const tokenUser2 = await authTestManager.createToken(dataTestUserAuth2);
 
@@ -611,7 +605,7 @@ describe('/feedback tests', () => {
     await feedbacksTestManager.deleteComment(
       comment.createdEntity,
       tokenUser2.createdEntity.accessToken,
-        HttpStatus.FORBIDDEN,
+      HttpStatus.FORBIDDEN,
     );
 
     await request(httpServer)
@@ -629,10 +623,10 @@ describe('/feedback tests', () => {
     await usersTestManager.createUserAdmin(dataTestUserCreate01);
 
     const blog = await blogTestMeneger.createBlog(dataTestBlogCreate01);
-    const post = await postsTestManager.createPost({
-      ...dataTestPostsCreate01,
-      blogId: blog.createdEntity.id,
-    });
+    const post = await blogTestMeneger.createPostByBlog(
+      blog.createdEntity,
+      dataTestPostsCreate01,
+    );
     const token = await authTestManager.createToken(dataTestUserAuth);
 
     const comment = await feedbacksTestManager.createComment(

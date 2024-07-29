@@ -1,8 +1,8 @@
 export const RouterPaths = {
-  videos: '/videos',
   blogs: '/blogs',
+  blogsSa: '/sa/blogs',
   posts: '/posts',
-  users: '/sa/users',
+  usersSa: '/sa/users',
   feedbacks: '/comments',
   security: '/security',
 

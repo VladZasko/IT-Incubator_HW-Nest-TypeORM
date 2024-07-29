@@ -13,7 +13,7 @@ export class PasswordRecovery {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @PrimaryColumn()
+  @PrimaryColumn('uuid')
   userId: string;
 
   @Column()

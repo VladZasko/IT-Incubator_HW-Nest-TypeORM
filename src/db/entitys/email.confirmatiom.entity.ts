@@ -13,7 +13,7 @@ export class EmailConfirmation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @PrimaryColumn()
+  @Column('uuid')
   userId: string;
 
   @Column()
@@ -26,6 +26,6 @@ export class EmailConfirmation {
   expirationDate: string;
 
   @OneToOne(() => User, (u) => u.emailConfirmation)
-  //@JoinColumn()
+  @JoinColumn()
   user: User;
 }

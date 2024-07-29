@@ -1,22 +1,21 @@
 import request from 'supertest';
 import { RouterPaths } from '../../../src/routerPaths';
-import {UsersTestManager} from '../users/utils/usersTestManager';
+import { UsersTestManager } from '../users/utils/usersTestManager';
 import {
   dataTestUserCreate01,
   dataTestUserCreate02,
 } from '../users/dataForTest/dataTestforUser';
-import {AuthTestManager} from '../auth/utils/authTestManager';
+import { AuthTestManager } from '../auth/utils/authTestManager';
 import {
   dataTestUserAuth,
   dataTestUserAuth2,
 } from '../auth/dataForTest/dataTestforAuth';
-import {HttpStatus, INestApplication} from "@nestjs/common";
-import {EmailAdapter} from "../../../src/features/auth/adapters/email-adapter";
-import {AuthQueryRepository} from "../../../src/features/auth/auth.query.repository";
-import {Test, TestingModule} from "@nestjs/testing";
-import {AppModule} from "../../../src/app.module";
-import {applyAppSettings} from "../../../src/settings/apply.app.settings";
-
+import { HttpStatus, INestApplication } from '@nestjs/common';
+import { EmailAdapter } from '../../../src/features/auth/adapters/email-adapter';
+import { AuthQueryRepository } from '../../../src/features/auth/auth.query.repository';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AppModule } from '../../../src/app.module';
+import { applyAppSettings } from '../../../src/settings/apply.app.settings';
 
 describe('/securityDevices', () => {
   let app: INestApplication;
@@ -25,25 +24,25 @@ describe('/securityDevices', () => {
   let authQueryRepository: AuthQueryRepository;
   let authTestManager: AuthTestManager;
   let usersTestManager: UsersTestManager;
-  
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-
     app = moduleFixture.createNestApplication();
-    applyAppSettings(app)
+    applyAppSettings(app);
     await app.init();
 
     httpServer = app.getHttpServer();
 
     emailAdapter = moduleFixture.get<EmailAdapter>(EmailAdapter);
-    authQueryRepository = moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
+    authQueryRepository =
+      moduleFixture.get<AuthQueryRepository>(AuthQueryRepository);
     authTestManager = new AuthTestManager(
-        authQueryRepository,
-        app,
-        emailAdapter,
+      authQueryRepository,
+      app,
+      emailAdapter,
     );
 
     usersTestManager = new UsersTestManager(app);

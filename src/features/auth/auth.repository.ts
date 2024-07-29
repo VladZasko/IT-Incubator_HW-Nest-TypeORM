@@ -52,7 +52,7 @@ export class AuthRepository {
   }
 
   async passwordRecovery(passwordRecoveryDto: PasswordRecovery) {
-    return !!(await this.usersRepository.save(passwordRecoveryDto));
+    return !!(await this.passwordRecoveryRepository.save(passwordRecoveryDto));
   }
 
   async deleteUserById(id: string): Promise<boolean> {
