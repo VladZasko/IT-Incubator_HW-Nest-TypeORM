@@ -5,8 +5,8 @@ import {
   PostsViewModel,
 } from '../../posts/models/output/PostsViewModel';
 import { BlogsViewModel } from '../models/output/BlogsViewModel';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { BlogIdModel } from '../models/input/BlogIdModel';
 import { Blog } from '../../../db/entitys/blog.entity';
 import { Post } from '../../../db/entitys/post.entity';
@@ -14,8 +14,6 @@ import { Post } from '../../../db/entitys/post.entity';
 @Injectable({ scope: Scope.DEFAULT })
 export class BlogsSaRepository {
   constructor(
-    @InjectDataSource()
-    protected dataSource: DataSource,
     @InjectRepository(Blog)
     private readonly blogRepository: Repository<Blog>,
     @InjectRepository(Post)
@@ -60,17 +58,6 @@ export class BlogsSaRepository {
     });
   }
 
-  async getPost(id: string): Promise<Blog | null> {
-    const query = `
-            SELECT *
-            FROM public."Posts"
-            WHERE "id" = $1
-            `;
-
-    const result = await this.dataSource.query(query, [id]);
-
-    return result[0];
-  }
   async createBlog(createBlogDto: Blog): Promise<BlogsViewModel> {
     const createBlog = await this.blogRepository.save(createBlogDto);
 

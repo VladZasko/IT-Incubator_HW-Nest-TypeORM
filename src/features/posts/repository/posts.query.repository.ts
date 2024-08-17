@@ -5,16 +5,14 @@ import { postQueryMapper } from '../mappers/mappers';
 import { QueryCommentModule } from '../../comments/models/input/QueryCommentModule';
 import { CommentViewModelGetAllComments } from '../../comments/models/output/CommentViewModel';
 import { commentQueryMapper } from '../../comments/mappers/mappers';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Post } from '../../../db/entitys/post.entity';
 import { Like } from '../../../db/entitys/like.entity';
 import { Comment } from '../../../db/entitys/comments.entity';
 @Injectable()
 export class PostsQueryRepository {
   constructor(
-    @InjectDataSource()
-    protected dataSource: DataSource,
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     @InjectRepository(Comment)

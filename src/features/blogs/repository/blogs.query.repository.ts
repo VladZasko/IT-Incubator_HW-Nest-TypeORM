@@ -24,7 +24,7 @@ export class BlogsQueryRepository {
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
+    const sortDirection = term.sortDirection;
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
@@ -37,7 +37,7 @@ export class BlogsQueryRepository {
     }
 
     const blogs = await queryBuilder
-      .orderBy(`b.${sortBy}`, sortDirection)
+      .orderBy(`b.${sortBy}`, `${sortDirection}`)
       .offset((pageNumber - 1) * pageSize)
       .limit(pageSize)
       .getMany();

@@ -6,7 +6,6 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BlogsController } from './features/blogs/blogs.controller';
-import { MongooseModule } from '@nestjs/mongoose';
 import { BlogsQueryRepository } from './features/blogs/repository/blogs.query.repository';
 import { PostsController } from './features/posts/posts.controller';
 import { PostsRepository } from './features/posts/repository/posts.repository';
@@ -70,8 +69,7 @@ import { DeleteDeviceUseCase } from './features/securityDevices/application/use-
 import { DeleteAllDeviceUseCase } from './features/securityDevices/application/use-cases/delete.all.device.use.case';
 import { CreateUserSaUseCase } from './features/users/application/use-cases/create.user.sa.use.case';
 import { DeleteUserSaUseCase } from './features/users/application/use-cases/delete.user.sa.use.case';
-
-const dbName = 'blogs-hws';
+import { SeedsModule } from '../test/seed-db/seed.db.module';
 
 const useCasesAuth = [
   CreateUserUseCase,
@@ -128,9 +126,6 @@ export const options: TypeOrmModuleOptions = {
       Comment,
       Like,
     ]),
-    MongooseModule.forRoot(
-      process.env.MONGO_URL || `mongodb://0.0.0.0:27017/${dbName}`,
-    ),
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
@@ -142,6 +137,7 @@ export const options: TypeOrmModuleOptions = {
       },
     ]),
     CqrsModule,
+    SeedsModule,
   ],
   controllers: [
     AppController,

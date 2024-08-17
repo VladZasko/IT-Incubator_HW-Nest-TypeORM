@@ -20,7 +20,7 @@ export class UsersQueryRepository {
     const searchLoginTerm = sortData.searchLoginTerm ?? '';
     const searchEmailTerm = sortData.searchEmailTerm ?? '';
     const sortBy = sortData.sortBy ?? 'createdAt';
-    const sortDirection = sortData.sortDirection === 'asc' ? 'ASC' : 'DESC';
+    const sortDirection = sortData.sortDirection;
     const pageNumber = sortData.pageNumber ?? 1;
     const pageSize = sortData.pageSize ?? 10;
 

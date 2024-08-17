@@ -23,7 +23,7 @@ export class BlogsSaQueryRepository {
   async findBlogs(term: QueryBlogsModel) {
     const searchNameTerm = term.searchNameTerm ?? null;
     const sortBy = term.sortBy ?? 'createdAt';
-    const sortDirection = term.sortDirection === 'asc' ? 'ASC' : 'DESC';
+    const sortDirection = term.sortDirection;
     const pageNumber = term.pageNumber ?? 1;
     const pageSize = term.pageSize ?? 10;
 
